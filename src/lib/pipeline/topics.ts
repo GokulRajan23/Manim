@@ -25,6 +25,8 @@ export type Topic = {
   /** Shown in the picker. German, as a teacher would name it. */
   label: string;
   blurb: string;
+  /** Which diagram in `docker/python/tafel/visuals.py` this lesson draws. */
+  visual: "slope" | "pythagoras" | "parabola" | "percent";
   concept: ConceptSpec;
 };
 
@@ -56,6 +58,7 @@ function spec(
 export const TOPICS: Topic[] = [
   {
     id: "klasse7-prozent",
+    visual: "percent",
     klasse: 7,
     label: "Prozentrechnung",
     blurb: "A percentage is a fraction of a whole, not a fixed amount.",
@@ -74,6 +77,7 @@ export const TOPICS: Topic[] = [
   },
   {
     id: "klasse8-steigung",
+    visual: "slope",
     klasse: 8,
     label: "Lineare Funktionen",
     blurb: "Slope is rise over run — steepness, not height.",
@@ -92,6 +96,7 @@ export const TOPICS: Topic[] = [
   },
   {
     id: "klasse9-pythagoras",
+    visual: "pythagoras",
     klasse: 9,
     label: "Satz des Pythagoras",
     blurb: "Areas of squares add — lengths do not.",
@@ -110,6 +115,7 @@ export const TOPICS: Topic[] = [
   },
   {
     id: "klasse10-parabel",
+    visual: "parabola",
     klasse: 10,
     label: "Quadratische Funktionen",
     blurb: "The parameter a stretches the parabola; it does not move it.",

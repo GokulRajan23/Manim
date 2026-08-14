@@ -121,6 +121,10 @@ export async function renderBeat(
   index: number,
   beat: StoryboardBeat,
   seconds: number,
+  /** Which diagram to draw, or "" for a text-only beat. */
+  visual = "",
+  /** 0..1 through the lesson, so the diagram develops across the seven beats. */
+  emphasis = 1,
 ): Promise<string> {
   const name = `beat_${String(index).padStart(2, "0")}`;
   // `Beat` must be *defined* here: Manim ignores an imported Scene subclass and
@@ -134,6 +138,8 @@ export async function renderBeat(
     `    LINES = ${JSON.stringify(beat.onScreen.slice(0, 3))}`,
     `    ROLE = ${JSON.stringify(beat.role)}`,
     `    DURATION = ${seconds.toFixed(3)}`,
+    `    VISUAL = ${JSON.stringify(visual)}`,
+    `    EMPHASIS = ${emphasis.toFixed(3)}`,
     "",
   ].join("\n");
   writeFileSync(join(dir, `${name}.py`), py);

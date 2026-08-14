@@ -17,6 +17,7 @@ import { enforce, format, runPassA, runPassB } from "@/lib/gate/runner";
 import { beatBands, loadRules } from "@/lib/rules/loader";
 import { durationScale } from "@/lib/gate/checks";
 import { storyboard } from "@/lib/pipeline/storyboard";
+import { findTopic } from "@/lib/pipeline/topics";
 import {
   concat, jobDir, mux, padSilence, probeSeconds, renderBeat, silenceSeconds, speak, vtt,
 } from "@/lib/render/pipeline";
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
   // non-deterministic stage and the most expensive; re-running it to iterate on
   // the gate or the render would pay for a model call that changed nothing.
   let lesson, concept;
+  let visual = "";
   if (source.startsWith("lesson:")) {
     const existing = getLesson(source.slice("lesson:".length));
     if (!existing?.concept) throw new Error(`no stored concept for ${source}`);
@@ -52,8 +54,10 @@ async function main(): Promise<void> {
   } else if (source.startsWith("topic:")) {
     // A built-in topic skips ingest and extraction entirely — the concept is
     // hand-authored and already in the shape extraction would have produced.
+    const picked = findTopic(source.slice("topic:".length));
     ({ lesson, concept } = createLessonFromTopic(source.slice("topic:".length)));
-    log(`topic ${lesson.id} — Klasse ${lesson.klasse}`);
+    visual = picked?.visual ?? "";
+    log(`topic ${lesson.id} — Klasse ${lesson.klasse} — diagram "${visual}"`);
   } else {
     log(`ingest + extract: ${source}`);
     ({ lesson, concept } = await createLessonFromUpload({
@@ -131,7 +135,10 @@ async function main(): Promise<void> {
   updateLesson(lesson.id, { status: "rendering" });
   for (const [index, beat] of board.beats.entries()) {
     const { name, padded, seconds } = audio[index]!;
-    const silent = await renderBeat(dir, index, beat, seconds);
+    // Emphasis walks 0 → 1 across the spine so the figure builds with the
+    // explanation instead of arriving complete in the first beat.
+    const emphasis = index / (board.beats.length - 1);
+    const silent = await renderBeat(dir, index, beat, seconds, visual, emphasis);
     const merged = await mux(dir, silent, padded, `${name}.mp4`);
     const rendered = await probeSeconds(dir, merged);
     log(`${beat.beat.padEnd(12)} rendered ${rendered.toFixed(2)}s`);

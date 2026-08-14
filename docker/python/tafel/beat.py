@@ -18,6 +18,7 @@ a palette violation cannot be written here (§3.5).
 from manim import *
 
 from tafel.palettes import mathematics as P
+from tafel.visuals import build
 
 # Role colours, addressed by meaning rather than appearance.
 _ROLE = {
@@ -38,6 +39,11 @@ class BeatBase(Scene):
     LINES = []
     ROLE = "known"
     DURATION = 5.0
+    #: Which diagram this lesson draws, or "" for a text-only beat.
+    VISUAL = ""
+    #: 0..1 — how far through the explanation this beat sits. Drives how much
+    #: of the diagram is present, so the figure builds up rather than blinking in.
+    EMPHASIS = 1.0
 
     def construct(self):
         self.camera.background_color = P.GROUND
@@ -48,11 +54,21 @@ class BeatBase(Scene):
         rule = Line(LEFT * 4.2, RIGHT * 4.2, color=P.CONSTRUCTION, stroke_width=2)
         rule.next_to(title, DOWN, buff=0.35)
 
+        # The diagram. EMPHASIS advances across the seven beats, so the figure
+        # develops with the explanation instead of arriving complete in beat one.
+        diagram = build(self.VISUAL, self.EMPHASIS)
+        if diagram is not None:
+            diagram.scale_to_fit_height(2.7).next_to(rule, DOWN, buff=0.45)
+
         # On-screen text is keywords, never the narration read back (rules §4).
-        lines = [str(line) for line in self.LINES][:3]
-        body = VGroup(*[Text(line, font=P.FONT, font_size=26, color=_INK) for line in lines])
+        # With a diagram present the keywords sit under it and stay few, so the
+        # frame keeps to the object budget the rules allow.
+        lines = [str(line) for line in self.LINES][: (2 if diagram is not None else 3)]
+        body = VGroup(*[Text(line, font=P.FONT, font_size=22, color=_INK) for line in lines])
         if lines:
-            body.arrange(DOWN, buff=0.45).next_to(rule, DOWN, buff=0.7)
+            anchor = diagram if diagram is not None else rule
+            body.arrange(RIGHT if diagram is not None else DOWN, buff=0.6)
+            body.next_to(anchor, DOWN, buff=0.4)
 
         # A short reveal, then a static hold. The hold is where the duration is
         # actually spent: the rules require stillness in every beat, and animating
@@ -60,6 +76,11 @@ class BeatBase(Scene):
         reveal = min(1.0, self.DURATION * 0.2)
         self.play(FadeIn(title, shift=DOWN * 0.2), Create(rule), run_time=reveal)
         spent = reveal
+
+        if diagram is not None:
+            draw = min(1.4, max(0.3, (self.DURATION - reveal) * 0.22))
+            self.play(FadeIn(diagram, shift=UP * 0.1), run_time=draw)
+            spent += draw
 
         if lines:
             step = min(0.45, max(0.05, (self.DURATION - reveal) * 0.12 / len(lines)))

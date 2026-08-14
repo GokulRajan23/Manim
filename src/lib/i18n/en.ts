@@ -113,6 +113,14 @@ export const en = {
       working: "Reading…",
     },
 
+    topics: {
+      heading: "Start from a topic",
+      lede:
+        "One topic per Klasse, ready to play. Each went through the same pipeline and " +
+        "the same gate as an uploaded worksheet.",
+      checksHold: "checks hold",
+    },
+
     subjects: {
       mathematics: "Mathematik",
       physics: "Physik",

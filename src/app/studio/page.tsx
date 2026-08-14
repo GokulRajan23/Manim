@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TopicPicker } from "./_components/topic-picker";
 import { UploadForm } from "./_components/upload-form";
 import { en } from "@/lib/i18n/en";
 import { SUBJECTS } from "@/lib/rules/schema";
@@ -15,6 +16,8 @@ export const metadata = { title: `${en.studio.eyebrow} — ${en.brand.name}` };
 /** Klasse 7–10 is the whole of `sek1`, and the whole of this sprint (plan.md §2). */
 const KLASSEN = [7, 8, 9, 10];
 
+export const dynamic = "force-dynamic";
+
 export default function Studio() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -27,6 +30,11 @@ export default function Studio() {
       <p className="mt-4 max-w-prose leading-relaxed text-ink/65">{en.studio.lede}</p>
 
       <div className="mt-10">
+        <TopicPicker />
+      </div>
+
+      <div className="mt-12 border-t border-ink/10 pt-10">
+        <h2 className="text-sm font-medium">Or upload your own material</h2>
         <UploadForm
           subjects={SUBJECTS.map((id) => ({ id, label: en.studio.subjects[id] }))}
           klassen={KLASSEN}

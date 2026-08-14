@@ -12,6 +12,7 @@ import { workspaceDir } from "@/lib/db/client";
 import { appendEvent, getLesson, recordArtifact, updateLesson } from "@/lib/db/repo";
 import type { ConceptSpec } from "@/lib/pipeline/concept";
 import { createLessonFromUpload } from "@/lib/pipeline/create-lesson";
+import { createLessonFromTopic } from "@/lib/pipeline/create-lesson";
 import { enforce, format, runPassA, runPassB } from "@/lib/gate/runner";
 import { beatBands, loadRules } from "@/lib/rules/loader";
 import { durationScale } from "@/lib/gate/checks";
@@ -24,7 +25,7 @@ import type { BeatId, Subject } from "@/lib/rules/schema";
 /** The demo profile: short enough to iterate on, long enough to be a lesson. */
 const TOTAL_SECONDS = Number(process.env.DEMO_SECONDS ?? 60);
 
-/** Trailing stillness per beat. Small, but the rules never allow zero. */
+/** Minimum trailing stillness per beat. The rules never allow zero. */
 const HOLD_SECONDS = 0.5;
 
 function log(message: string): void {
@@ -36,6 +37,7 @@ async function main(): Promise<void> {
   if (!source) throw new Error("usage: npm run make -- <file.pdf|photo.jpg> [subject] [klasse]");
   const subject = (process.argv[3] ?? "mathematics") as Subject;
   const klasse = Number(process.argv[4] ?? 8);
+  void klasse;
 
   // `lesson:<id>` reuses an already-extracted concept. Extraction is the one
   // non-deterministic stage and the most expensive; re-running it to iterate on
@@ -47,6 +49,11 @@ async function main(): Promise<void> {
     lesson = existing;
     concept = existing.concept as ConceptSpec;
     log(`reusing lesson ${lesson.id}`);
+  } else if (source.startsWith("topic:")) {
+    // A built-in topic skips ingest and extraction entirely — the concept is
+    // hand-authored and already in the shape extraction would have produced.
+    ({ lesson, concept } = createLessonFromTopic(source.slice("topic:".length)));
+    log(`topic ${lesson.id} — Klasse ${lesson.klasse}`);
   } else {
     log(`ingest + extract: ${source}`);
     ({ lesson, concept } = await createLessonFromUpload({
@@ -93,7 +100,17 @@ async function main(): Promise<void> {
 
     // Audio first, and measured — the duration of everything else follows from it.
     const raw = await speak(dir, name, beat.narration);
-    const padded = await padSilence(dir, raw, HOLD_SECONDS);
+
+    // Silence is planned, not left over (§4.3). A beat whose speech falls short
+    // of its band is padded up into it rather than being failed by B1 — the
+    // stillness is time the learner gets to think, and the band is where the
+    // rulebook says that time belongs. A beat that runs *over* its band cannot
+    // be fixed here and is left for the gate to block, which is correct.
+    const spoken = await probeSeconds(dir, raw);
+    const [bandLo] = scaled[beat.beat];
+    const pad = Math.max(HOLD_SECONDS, bandLo - spoken + 0.3);
+
+    const padded = await padSilence(dir, raw, pad);
     const seconds = await probeSeconds(dir, padded);
 
     measured.push({

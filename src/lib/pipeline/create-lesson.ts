@@ -13,6 +13,7 @@ import type { ConceptProblem, ConceptSpec } from "./concept";
 import { loadRules } from "@/lib/rules/loader";
 import { stageLimits } from "@/lib/rules/loader";
 import type { Subject } from "@/lib/rules/schema";
+import { findTopic, TOPICS } from "./topics";
 
 export type CreateLessonInput = {
   subject: Subject;
@@ -90,4 +91,38 @@ export async function createLessonFromUpload(
     updateLesson(lesson.id, { status: "failed", error: message });
     throw error;
   }
+}
+
+/**
+ * Start a lesson from a built-in topic instead of an upload.
+ *
+ * Synchronous, because there is nothing to read and no model to ask: the concept
+ * is already written. Everything downstream — storyboard, gate, narration,
+ * render — is identical to the upload path, which is the point.
+ */
+export function createLessonFromTopic(topicId: string): { lesson: Lesson; concept: ConceptSpec } {
+  const topic = findTopic(topicId);
+  if (!topic) {
+    throw new Error(`unknown topic "${topicId}". Known: ${TOPICS.map((t) => t.id).join(", ")}`);
+  }
+
+  const { config } = loadRules(topic.concept.subject);
+  const [lo, hi] = stageLimits(config, "sek1").target_seconds;
+
+  const lesson = createLesson({
+    title: topic.concept.topic,
+    subject: topic.concept.subject,
+    klasse: topic.klasse,
+    targetSeconds: Math.round((lo + hi) / 2),
+    ideaUnit: topic.concept.ideaUnits.items[0]!,
+    misconceptionId: topic.concept.candidateMisconceptions[0]!.registerId,
+    concept: topic.concept,
+    status: "draft",
+    sourceKind: "topic",
+  } as Parameters<typeof createLesson>[0]);
+
+  updateLesson(lesson.id, { concept: topic.concept });
+  appendEvent(lesson.id, "ingest", `Built-in topic: ${topic.label} (Klasse ${topic.klasse})`);
+
+  return { lesson: { ...lesson, concept: topic.concept }, concept: topic.concept };
 }

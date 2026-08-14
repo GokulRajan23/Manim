@@ -54,6 +54,18 @@ export function durationScale(config: SubjectConfig, targetSeconds: number): num
 
 const words = (text: string): number => text.trim().split(/\s+/).filter(Boolean).length;
 
+/**
+ * Words in an on-screen label, where a mathematical symbol is not a word.
+ *
+ * `max_words_per_label` limits how much *reading* a label asks of the learner.
+ * Splitting on whitespace counts the operators in "20 % · 50 = 10" as five words
+ * and blocks a four-token expression that takes one glance — the rule was
+ * written about prose, and symbols are exactly what these labels are meant to
+ * carry. Only tokens containing a letter or digit count.
+ */
+const labelWords = (text: string): number =>
+  text.trim().split(/\s+/).filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
+
 /** Pass A — on the storyboard, before anything is bought or rendered. */
 export function passA(
   config: SubjectConfig,
@@ -82,11 +94,11 @@ export function passA(
 
   // A3 — on-screen labels are keywords, not sentences.
   const longLabels = board.beats.flatMap((b) =>
-    b.onScreen.filter((l) => words(l) > stage.max_words_per_label).map((l) => `${b.beat}:"${l}"`),
+    b.onScreen.filter((l) => labelWords(l) > stage.max_words_per_label).map((l) => `${b.beat}:"${l}"`),
   );
   add("A3", `On-screen labels ≤ ${stage.max_words_per_label} words`, longLabels.length === 0,
     longLabels.length ? longLabels.join(", ") : `longest ${Math.max(0,
-      ...board.beats.flatMap((b) => b.onScreen.map(words)))} words`);
+      ...board.beats.flatMap((b) => b.onScreen.map(labelWords)))} words`);
 
   // A4 — a frame the learner can hold in working memory.
   const crowded = board.beats.filter((b) => b.onScreen.length > stage.max_simultaneous_objects);

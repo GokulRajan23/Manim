@@ -187,8 +187,12 @@ function Found({ concept, problems, lessonId }: Result) {
         )}
       </dl>
 
-      {/* Step 4 builds the destination; the id is shown so the row is findable now. */}
-      <p className="mt-8 text-xs text-ink/45">{lessonId}</p>
+      <a
+        href={`/studio/${lessonId}`}
+        className="mt-8 inline-block rounded bg-primary px-4 py-2 text-sm text-surface"
+      >
+        {en.studio.result.continue}
+      </a>
     </section>
   );
 }

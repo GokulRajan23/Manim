@@ -1,5 +1,5 @@
 subject: chemistry
-version: 1
+version: 1.1
 narration_language: en
 learner_l1: de
 
@@ -194,7 +194,10 @@ visuals:
     accent_focus: "#F76707"       # reserved for "look here now"
   element_colours:
     H: "#FFFFFF"
-    C: "#2B2B2B"
+    # v1.1: CPK carbon #2B2B2B measures 1.44:1 against the #050315 frame ground —
+    # below every WCAG threshold, effectively invisible. Lightened to the nearest
+    # neutral that clears text contrast (14.4:1). The only element colour amended.
+    C: "#D9D9D9"
     N: "#3050F8"
     O: "#E03131"
     Na: "#AB63FA"

@@ -12,14 +12,15 @@
     "test:watch": "vitest",
     "gen:theme": "tsx scripts/gen-theme.ts",
     "doctor": "tsx --env-file-if-exists=.env.local scripts/doctor.ts",
+    "calibrate": "tsx --env-file-if-exists=.env.local scripts/calibrate.ts",
     "predev": "npm run gen:theme",
     "prebuild": "npm run gen:theme"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.117.1",
     "better-sqlite3": "^13.0.3",
     "nanoid": "^6.0.1",
     "next": "16.3.1",
+    "openai": "^7.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "yaml": "^2.9.0",

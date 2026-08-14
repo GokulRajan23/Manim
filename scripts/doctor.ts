@@ -19,8 +19,9 @@ import { execFile } from "node:child_process";
 import { accessSync, constants, mkdirSync } from "node:fs";
 import { promisify } from "node:util";
 import { closeDb, db, workspaceDir } from "../src/lib/db/client";
-import { loadAllRules, framePalette, rulesDir } from "../src/lib/rules/loader";
+import { loadAllRules, framePalette, rulesDir, stageLimits } from "../src/lib/rules/loader";
 import { SUBJECTS } from "../src/lib/rules/schema";
+import { ping, providerName } from "../src/lib/llm/client";
 import { contrastRatio } from "../src/lib/theme/color";
 import { CONTRAST, FRAME_GROUND } from "../src/lib/theme/tokens";
 
@@ -116,23 +117,63 @@ const checks: Check[] = [
     },
   },
   {
-    name: "ANTHROPIC_API_KEY",
-    probe: () =>
-      process.env.ANTHROPIC_API_KEY
-        ? ok("set")
-        : bad("unset — extraction, storyboard and codegen cannot run"),
+    name: "model gateway reachable",
+    probe: async () => {
+      // A live round trip, not a presence check: a revoked key is indistinguishable
+      // from a good one until something actually calls the gateway. `ping` reports
+      // an unset key as a thrown error, which the runner below turns into a FAIL.
+      const { ok: reachable, detail } = await ping();
+      return reachable ? ok(`${providerName()} — ${detail}`) : bad(`${providerName()} — ${detail}`);
+    },
   },
   {
-    name: "ELEVENLABS_API_KEY",
-    probe: () => (process.env.ELEVENLABS_API_KEY ? ok("set") : bad("unset — no narration")),
+    name: "ElevenLabs reachable",
+    probe: async () => {
+      const key = process.env.ELEVENLABS_API_KEY;
+      if (!key) return bad("ELEVENLABS_API_KEY unset — no narration");
+      try {
+        const response = await fetch("https://api.elevenlabs.io/v1/user/subscription", {
+          headers: { "xi-api-key": key },
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (!response.ok) {
+          return bad(`HTTP ${response.status} — ${(await response.text()).slice(0, 160)}`);
+        }
+        // The character budget is the operative number: narration for a full
+        // lesson is a few thousand characters, and the cap is per billing period.
+        const plan = (await response.json()) as {
+          tier?: string;
+          status?: string;
+          character_count?: number;
+          character_limit?: number;
+        };
+        const used = plan.character_count ?? 0;
+        const limit = plan.character_limit ?? 0;
+        return ok(
+          `${plan.tier ?? "unknown"} tier, ${plan.status ?? "unknown"} — ` +
+            `${(limit - used).toLocaleString()} of ${limit.toLocaleString()} characters left`,
+        );
+      } catch (error) {
+        return bad(firstLine(error));
+      }
+    },
   },
   {
-    name: "ELEVENLABS_VOICE_ID",
-    optional: true,
-    probe: () =>
-      process.env.ELEVENLABS_VOICE_ID
-        ? ok(process.env.ELEVENLABS_VOICE_ID)
-        : bad("unset — pick one by measured wpm in Step 2"),
+    name: "narration calibrated",
+    probe: () => {
+      // Doctor does not re-measure — that spends quota on every run. It checks
+      // that a measurement happened and that the speed is one the API accepts,
+      // since an out-of-range value fails at synthesis time, deep in a job.
+      const voice = process.env.ELEVENLABS_VOICE_ID;
+      const speed = Number(process.env.ELEVENLABS_SPEED);
+      if (!voice) return bad("ELEVENLABS_VOICE_ID unset — run `npm run calibrate`");
+      if (!Number.isFinite(speed)) return bad("ELEVENLABS_SPEED unset or not a number");
+      if (speed < 0.7 || speed > 1.2) {
+        return bad(`ELEVENLABS_SPEED=${speed} outside the 0.7-1.2 the API accepts`);
+      }
+      const [lo, hi] = stageLimits(loadAllRules().mathematics.config, "sek1").narration_wpm;
+      return ok(`voice ${voice} at speed ${speed}; rulebook band ${lo}-${hi} wpm`);
+    },
   },
   {
     name: "docker daemon",
@@ -178,6 +219,61 @@ const checks: Check[] = [
         }`);
       } catch (error) {
         return bad(firstLine(error));
+      }
+    },
+  },
+  {
+    name: "Inter in image",
+    probe: async () => {
+      try {
+        // `Text(font="Inter")` falls back to DejaVu Sans when the font is missing
+        // rather than raising, so this failure would otherwise reach the screen
+        // looking like a successful render (§3.4). fc-match is the honest test:
+        // it reports what fontconfig would actually hand back for that name.
+        const matched = firstLine(await inImage(["fc-match", "Inter"]));
+        return /inter/i.test(matched)
+          ? ok(matched)
+          : bad(`"Inter" resolves to ${matched} — Text(font="Inter") would silently fall back`);
+      } catch (error) {
+        return bad(firstLine(error));
+      }
+    },
+  },
+  {
+    name: "LaTeX in image",
+    probe: async () => {
+      // Rendering a real MathTex, not just checking pdflatex is on PATH: the
+      // path that matters is latex -> dvi -> dvisvgm -> SVG, and a TeX Live
+      // missing a style file fails only at that last step.
+      const scene = [
+        "from manim import *",
+        "class Probe(Scene):",
+        "    def construct(self):",
+        "        self.add(MathTex(r'm = \\frac{\\Delta y}{\\Delta x}'))",
+      ].join("\n");
+      // Base64 rather than quoting the source into `sh -c`: the scene contains
+      // backslashes, quotes and newlines, all of which a shell would mangle.
+      const encoded = Buffer.from(scene, "utf8").toString("base64");
+      try {
+        await sh(
+          "docker",
+          [
+            "run", "--rm", "--network", "none", "--entrypoint", "sh", manimImage(),
+            "-c",
+            `mkdir -p /tmp/p && cd /tmp/p && echo ${encoded} | base64 -d > p.py && ` +
+              `manim -ql --disable_caching --format png -s --media_dir /tmp/p/media p.py Probe`,
+          ],
+          180_000,
+        );
+        return ok("MathTex renders (latex → dvisvgm)");
+      } catch (error) {
+        // Manim reports a missing style file or a TeX error on stderr many lines
+        // in, so the first line alone is rarely the useful one.
+        const text = error instanceof Error ? error.message : String(error);
+        const tex = text
+          .split("\n")
+          .find((line) => /latex|tex |\.sty|dvisvgm/i.test(line));
+        return bad(tex?.trim() ?? firstLine(error));
       }
     },
   },

@@ -14,7 +14,8 @@
     "doctor": "tsx --env-file-if-exists=.env.local scripts/doctor.ts",
     "calibrate": "tsx --env-file-if-exists=.env.local scripts/calibrate.ts",
     "predev": "npm run gen:theme",
-    "prebuild": "npm run gen:theme"
+    "prebuild": "npm run gen:theme",
+    "make": "tsx --env-file-if-exists=.env.local scripts/make-lesson.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

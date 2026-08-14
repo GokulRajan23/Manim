@@ -189,7 +189,15 @@ const checks: Check[] = [
     name: `image ${manimImage()}`,
     probe: async () => {
       try {
-        const id = await sh("docker", ["image", "inspect", manimImage(), "--format", "{{.Id}}"]);
+        // Generous for a metadata read, because every check runs concurrently
+        // and the container-based ones can have several images starting at once.
+        // Observed: this timing out at 30 s and reporting a built image as
+        // missing, while the checks that actually *ran* in it all passed.
+        const id = await sh(
+          "docker",
+          ["image", "inspect", manimImage(), "--format", "{{.Id}}"],
+          90_000,
+        );
         return ok(id.replace("sha256:", "").slice(0, 12));
       } catch {
         return bad("not built — see docker/Dockerfile");

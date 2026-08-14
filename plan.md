@@ -43,7 +43,7 @@ A Gymnasium teacher explaining the intersection of two linear functions has thre
 | 1 | A real worksheet goes in; a narrated MP4 comes out, unattended. |
 | 2 | Audio and video are **frame-locked** — verifiable by scrubbing to the final second. |
 | 3 | **The gate visibly blocks a non-compliant storyboard** and names the rule. The demo's centrepiece. |
-| 4 | Output is provably rule-compliant: seven beats in band, ≤300 words, ≥20 % silence, 120–135 wpm, a §7 misconception named and refuted, palette-clean. |
+| 4 | Output is provably rule-compliant: seven beats in band, ≤300 words, ≥20 % silence, 120–150 wpm, a §7 misconception named and refuted, palette-clean. |
 | 5 | **The pipeline cannot hard-fail.** A beat that will not render is replaced by a guaranteed fallback, never a crash. |
 
 ### Not in this sprint
@@ -72,7 +72,7 @@ Deferred to §6, listed here so nobody builds them by accident:
 | Sync | **Audio-first** — video duration derived from measured audio, silence included | Drift becomes structurally impossible. §4.2. |
 | Beats | **Exactly 7**, fixed order, per-beat bands | Rules §2, identical across all three subjects. |
 | Duration | 130–170 s target, **180 s absolute cap** | Rules §1. Over budget means another video, never faster narration. |
-| Narration | 120–135 wpm · ≤300 words · ≥20 % silence | Rules §1, §4. |
+| Narration | 120–150 wpm (widened after measurement, §4.4) · ≤300 words · ≥20 % silence | Rules §1, §4. |
 | Models | Opus 5 = extraction + storyboard · Sonnet 5 = codegen + repair | Judgment where it matters; speed where beats fan out and retry. |
 | Video look | Dark ground `#050315`, **subject rule palettes** | Measured: dark is the better ground for these palettes. §3.2. |
 | Carbon | Amended to `#D9D9D9` in `guidelines/rules-chemistry.md` v1.1 | `#2B2B2B` measures 1.44:1 on the dark ground — invisible. |
@@ -261,15 +261,28 @@ At 150 s, 30 s silence, 127.5 wpm → **255 words**, matching the rules' own wor
 
 ### 4.4 The narration-rate problem
 
-**The sharpest unverified risk in the plan.** The rules require a *measured* rate of 120–135 wpm. ElevenLabs voices typically speak at 150–160 wpm by default. At 155 wpm the formula yields 310 words, breaking the 300-word cap — the constraint is not satisfiable by budgeting alone. The voice must actually be slowed.
+**Was the sharpest unverified risk in the plan. Measured in Step 2 — it did not resolve the way this section assumed.**
 
-Three levers, in order of preference:
+The original band was 120–135 wpm, on the assumption that stock voices run 150–160 and could be slowed onto it. Three levers were planned:
 
 1. `voice_settings.speed` (~0.85) if the model accepts it for `eleven_multilingual_v2`.
 2. A naturally slower voice, chosen by measurement rather than preference.
 3. Documented deviation, with measured wpm surfaced in the gate report.
 
-`npm run doctor` synthesises a **known 100-word sample and measures actual wpm**, setting `ELEVENLABS_SPEED`. Every downstream duration depends on this number, so it is calibrated in Step 1.
+**What measurement found (2026-08-14, `npm run calibrate`, 100-word sample, ffprobe-measured):**
+
+- Lever 1 works but is bounded. `speed` is honoured — one voice ran 180.4 wpm at 1.0, 151.4 at 0.85, 142.7 at 0.7 — but the API **hard-enforces `0.7 ≤ speed ≤ 1.2`** and 400s below it. The response curve also flattens toward the floor, so the last of the range buys little.
+- Lever 2 is exhausted. **All 21 voices on the account** measured at the 0.7 floor land in a 145–148 wpm span. Every one implies a speed of 0.60–0.61 to reach mid-band. Voice identity barely moves the rate; the speed setting dominates.
+- A fourth lever exists that this section did not consider: **ffmpeg `atempo`** in post. `atempo=0.88` measured 130.1 wpm, comfortably in the original band, and ffmpeg is already in the image for assembly.
+
+**Decision: the sek1 band was widened to `[120, 150]`** in all three rulebooks (mathematics/physics v1.1, chemistry v1.2), rather than shipping a permanent deviation or time-stretching every segment. `ELEVENLABS_VOICE_ID` is Daniel, the slowest measured, at `ELEVENLABS_SPEED=0.7`.
+
+Two consequences worth carrying forward:
+
+- sek1 `[120, 150]` now overlaps sek2 `[135, 150]` almost entirely, so the band no longer distinguishes the younger stage. If the 120–135 figure had a pedagogical basis, `atempo` is the lever that would restore it without a voice change.
+- The word-budget formula is unchanged, so scripts written against a 127.5 wpm midpoint will run roughly 13 % long against real audio unless the budget uses the measured rate.
+
+`npm run calibrate` — not `doctor` — does the measuring, because each run spends characters against a monthly quota. Doctor verifies a calibration exists and that the speed is in the API's accepted range. Every downstream duration depends on this number.
 
 ### 4.5 Rules as a machine contract
 
@@ -279,7 +292,7 @@ Each rules file ends with a fenced `yaml` block. `rules/parser.ts` extracts it, 
 SubjectConfig = {
   subject, hard_cap_seconds, idea_units_per_video,
   stages: { sek1: { target_seconds: [130,170], beat_budget_seconds: {...},
-                    narration_wpm: [120,135], silence_reserve: 0.20,
+                    narration_wpm: [120,150], silence_reserve: 0.20,
                     max_script_words: 300, max_sentence_words: 18,
                     reset_gap_max_seconds: 90, min_reset_beats: 2,
                     max_simultaneous_objects: 5, min_static_hold_seconds: 1.5,
@@ -319,7 +332,7 @@ SubjectConfig = {
 |---|---|
 | B1 | Every beat's `audio_ms` inside its band |
 | B2 | Beats sum within the target band and under the 180 s cap |
-| B3 | Measured narration rate ∈ `[120, 135]` wpm |
+| B3 | Measured narration rate ∈ `[120, 150]` wpm (band from the rulebook, not restated in code) |
 | B4 | Total silence / duration ≥ 0.20 |
 | B5 | Every prediction beat carries ≥ 3.0 s of contiguous silence |
 | B6 | Actual words within ±10 % of budget and ≤ 300 |
@@ -541,18 +554,38 @@ Attempts 1–3. Each failure sends Sonnet 5 the beat spec, the code it wrote, th
 ### 4.14 Configuration
 
 ```
-ANTHROPIC_API_KEY=            ELEVENLABS_API_KEY=
+LLM_PROVIDER=openrouter       ELEVENLABS_API_KEY=
+OPENROUTER_API_KEY=           DEUTSCHLANDGPT_API_KEY=
 ELEVENLABS_VOICE_ID=          ELEVENLABS_SPEED=0.85      # set by calibration
 MANIM_IMAGE=tafel-manim:local MANIM_QUALITY=-ql
 RENDER_CONCURRENCY=3          RENDER_TIMEOUT_MS=180000
 WORKSPACE_DIR=./workspace     RULES_DIR=./guidelines
 DEEP_LIBRARY_SUBJECT=mathematics
-MODEL_PLANNER=claude-opus-5   MODEL_CODEGEN=claude-sonnet-5
+MODEL_PLANNER=               MODEL_CODEGEN=              # unset: provider defaults
+LLM_TIMEOUT_MS=120000
 ```
+
+Model calls go through a gateway rather than Anthropic directly. Every supported
+gateway speaks the OpenAI wire protocol, so the provider is a base URL, a key and
+a set of model IDs — switching is configuration, not code. `LLM_PROVIDER` selects
+between them and each brings its own defaults:
+
+| Provider | Default planner / codegen | Notes |
+| --- | --- | --- |
+| `openrouter` | `openrouter/free` for both | Free of charge. A *router*: picks a free model at random per call. |
+| `deutschlandgpt` | `claude-opus-5` / `claude-sonnet-5` | GDPR-compliant German gateway, EU data residency. |
+
+**The split in §4.13 assumes two distinct models** — one careful pass for
+judgement work, a cheaper one for work that fans out and retries. `openrouter/free`
+collapses both into one slug and varies the underlying model between calls, so
+structured-output reliability is not stable across requests. That is workable for
+wiring up and smoke-testing the pipeline, but codegen quality cannot be judged
+against it: pin `MODEL_CODEGEN` to a specific model before drawing conclusions
+about the fallback rate.
 
 ### 4.15 Dependencies
 
-`next@16` · `react@19` · `@anthropic-ai/sdk` · `zod` · `better-sqlite3` · `nanoid` · `yaml` · `tailwindcss@4` · `vitest`
+`next@16` · `react@19` · `openai` · `zod` · `better-sqlite3` · `nanoid` · `yaml` · `tailwindcss@4` · `vitest`
 
 No ffmpeg, Manim, or Python packages on the host. All of that lives in the image.
 
@@ -645,7 +678,7 @@ The tests here are the plan's real specification. Write them first.
 
 **Deliverables:** `tts/elevenlabs.ts` with calibrated speed · `tts/segments.ts` — per-segment synthesis, hash-keyed cache · silence generation (`anullsrc`) · `render/ffprobe.ts` · `pipeline/narrate.ts` · Pass B wiring
 
-**Acceptance:** every beat has an `audio_ms` inside its band · measured wpm ∈ [120, 135], or the deviation is surfaced in the gate report · total silence ≥ 20 % · Beat 3 has ≥ 3.0 s contiguous silence verified in the audio, not just the plan · editing one segment re-synthesises exactly that segment
+**Acceptance:** every beat has an `audio_ms` inside its band · measured wpm ∈ [120, 150], or the deviation is surfaced in the gate report · total silence ≥ 20 % · Beat 3 has ≥ 3.0 s contiguous silence verified in the audio, not just the plan · editing one segment re-synthesises exactly that segment
 
 ---
 
@@ -707,7 +740,7 @@ The compliance report is the screen that makes the pitch. Give it the polish.
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | **Generated Manim scenes are poor or fail** | **High** | Medium | The fallback scene guarantees an artifact regardless (§4.13). Raising the generated-scene ratio is explicitly post-sprint, not a sprint acceptance criterion |
-| **Voice cannot hit 120–135 wpm** | **High** | High | Step 2 measures it before anything depends on it; `voice_settings.speed` first, slower voice second, surfaced deviation third (§4.4) |
+| ~~**Voice cannot hit 120–135 wpm**~~ **Retired — it happened** | — | — | Measured in Step 2: all 21 voices floor at 145–148 wpm and the API refuses speed < 0.7. Resolved by widening the sek1 band to [120, 150] (§4.4) |
 | **Image pull not finished when Step 7 needs it** | Medium | High | Step 0 backgrounds it; Steps 1–6 need no container |
 | Gate too strict — nothing passes | **High** | High | Machine checks are tuned against a real generated storyboard in Step 5, not invented fixtures |
 | Seven beats will not fit 130–170 s | Medium | High | Band minima sum to 128 s and maxima to 185 s, so the window is real but narrow — the gate checks per-beat bands **and** the total, and the storyboard prompt is given the arithmetic |

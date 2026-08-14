@@ -1,5 +1,5 @@
 subject: physics
-version: 1
+version: 1.1
 narration_language: en
 learner_l1: de
 
@@ -11,7 +11,11 @@ limits:
     sek1:
       label: "Klasse 7-10, ages 12-16"
       target_seconds: [130, 170]
-      narration_wpm: [120, 135]
+      # Widened from [120, 135] after measurement (plan.md §4.4). All 21 ElevenLabs
+      # voices bottom out at 145-148 wpm: eleven_multilingual_v2 hard-enforces
+      # speed >= 0.7, and 0.7 is not slow enough on any of them. 150 admits the
+      # slowest measured voice. Revisit if a genuinely slower voice appears.
+      narration_wpm: [120, 150]
       silence_reserve: 0.20
       max_script_words: 300
       max_sentence_words: 18

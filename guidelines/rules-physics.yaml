@@ -1,0 +1,346 @@
+subject: physics
+version: 1
+narration_language: en
+learner_l1: de
+
+limits:
+  hard_cap_seconds: 180
+  idea_units_per_video: 1
+  over_budget_action: split_into_another_video   # never speed up narration, never cut beat 7
+  stages:
+    sek1:
+      label: "Klasse 7-10, ages 12-16"
+      target_seconds: [130, 170]
+      narration_wpm: [120, 135]
+      silence_reserve: 0.20
+      max_script_words: 300
+      max_sentence_words: 18
+      reset_gap_max_seconds: 90
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 5
+      min_static_hold_seconds: 1.5
+      max_words_per_label: 5
+    sek2:
+      label: "Klasse 11-13, ages 16-19"
+      target_seconds: [155, 180]
+      narration_wpm: [135, 150]
+      silence_reserve: 0.15
+      max_script_words: 360
+      max_sentence_words: 25
+      reset_gap_max_seconds: 110
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 7
+      min_static_hold_seconds: 1.2
+      max_words_per_label: 7
+
+video_types:
+  concept: { duration_seconds: [120, 180], chains_by: sub_concept }
+  worked:  { duration_seconds: [120, 180], chains_by: step_sequence }
+  drill:   { duration_seconds: [60, 120],  chains_by: none }
+  no_type_gets_a_cap_exception: true
+
+idea_units:
+  count_one_for_each:
+    - new term or symbol the learner must retain
+    - new relationship between quantities already known
+    - procedural step that cannot be chunked with the previous step
+    - required switch between representations
+  do_not_count:
+    - review of established material
+    - repetition of a procedure already shown
+    - context, motivation, framing
+    - anything not retained past the video
+
+beats:
+  order_mandatory: true
+  none_removable: true
+  default_spine: elicit_confront_resolve
+  sequence:
+    - id: anchor
+      do: One specific physical situation. Keep it visible or referenced all video.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: pretrain
+      do: Name the symbols and terms before the explanation uses them.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: elicit
+      do: Pose the prediction with a small number of discrete candidate answers, at least one being the misconception. Freeze. Hold silence. Do not hint.
+      seconds: { sek1: [18, 24], sek2: [18, 22] }
+      min_silence_seconds: 3.0
+      is_reset_beat_1: true
+      interactive: true
+    - id: confront
+      do: Show the common prediction failing against observable evidence. Show the failure, do not assert it. State why the wrong answer is appealing. Never mock it.
+      seconds: { sek1: [22, 32], sek2: [28, 38] }
+      required_every_video: true
+      must_name_misconception_from: misconceptions
+    - id: resolve
+      do: Apply the correct principle across structured cases on the anchor. Cross-reference the refuted idea once, naming where it breaks.
+      seconds: { sek1: [40, 55], sek2: [55, 75] }
+    - id: vary
+      do: Change one feature. Include a case that looks like an exception and is not.
+      seconds: { sek1: [12, 20], sek2: [18, 28] }
+    - id: consolidate
+      do: Static summary max 20 words, misconception marked refuted, one forward link. No new content.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+
+  productive_failure_opener:
+    allowed_stages: [sek2]
+    do: Pose a problem the learner cannot yet solve before beat 2. Instruction must follow in the same video. Frame failure as informative, never as a test.
+
+reset_beats:
+  interactive_types: [prediction, check_question, pause_and_try]
+  passive_types: [micro_recap, register_shift]
+  beat_3_counts_as_reset_1: true
+
+chains:
+  formula: idea_units + representation_switch + worked_example
+  max_links: 5
+  min_link_seconds: 90
+  boundary: sub_concept_only
+  bridge_max_words: 15
+  ends_unresolved_allowed: false
+  show_chain_position: true
+  templates:
+    standard: [phenomenon_and_wrong_prediction_resolved, the_principle, apparent_exception]
+    bridging: one_bridge_step_per_link
+  rules:
+    - Every link is independently complete with all seven beats, its own anchor and its own consolidation.
+    - Never end a link on an unresolved misconception. No cliffhangers.
+    - Split by sub-concept, never by beat. If no conceptual boundary exists, recount the idea units.
+    - Each link after the first opens by stating the result of the previous link. Never re-argue it.
+    - Show chain position on the resting frame.
+
+narration:
+  word_budget_formula: (seconds / 60) * wpm * (1 - silence_reserve)
+  rules:
+    - Never read on-screen text aloud. On-screen text is keywords and symbols only.
+    - Strip all filler. The learner controls the pause button.
+    - Use second person. "you", "we", "let's". Never "one observes that".
+    - One idea per sentence.
+    - No idioms. No phrasal verbs where a plain verb exists.
+    - At most one subordinate clause per sentence.
+    - Speak a symbol in full on first use, then abbreviate consistently. Same symbol read the same way library-wide.
+  silence_minimums_seconds:
+    after_transformation: 1.0
+    before_reveal: 1.5
+    prediction_prompt: 3.0
+    resting_frame: 1.5
+  notation:
+    decimal_separator_on_screen: "."
+    state_decimal_convention_once_per_series: true
+    thousands_separator_on_screen: " "     # thin space, never a comma
+    use_international_symbols: true
+    show_german_equivalent_once_in_side_label: true    # e.g. Weg s vs displacement x
+  banned_phrases:
+    gatekeeping: ["as you can see", "obviously", "clearly,", "simply", "it's just", "trivially"]
+    teleology: ["wants to", "tries to", "seeks to", "prefers to", "needs to"]
+    physics: ["force of motion", "force of the moving object", "energy is used up", "current is used up"]
+    evasion: ["it can be shown that", "trust me", "beyond the scope of this video"]
+    filler: ["um", "uh", "so,", "okay so", "as I said"]
+  conditional_phrases:
+    centrifugal force: requires_explicit_rotating_frame_statement
+  banned_false_friends: [eventually, actually, sensible, control]
+
+visuals:
+  rules:
+    - Keep a persistent anchor panel. The governing equation or diagram holds a fixed region and stays visible while animation happens around it.
+    - Build cumulatively rather than replacing. When a clear is unavoidable, restate what carried over.
+    - One animated change at a time. Never two simultaneous changes in different screen regions.
+    - One cue at a time. Cue at the moment of relevance, not before or after.
+    - Place labels adjacent to what they label. No legends, no keys.
+    - End on a static resting frame that is screenshot-worthy.
+    - Include nothing decorative. Every element carries meaning the narration does not.
+    - Never animate a physically wrong picture for visual appeal.
+    - Match animation speed to trackability. If the learner cannot follow it at 1x it is too fast.
+    - Never place text where an animation will pass through it.
+  forbidden_depictions:
+    - orbiting ball electrons
+    - frozen molecules in a kinetic theory video
+    - a ray of light drawn with a visible glowing body
+    - cartoon physics that violates the concept being taught
+  cue_preference: [colour, highlight, arrow]   # arrows for direction and causation only
+  max_simultaneous_animated_changes: 1
+  max_simultaneous_cues: 1
+  colour_encodes_meaning_alone: false
+  palette:
+    force: "#E03131"
+    velocity: "#4C6EF5"
+    acceleration: "#F59F00"
+    energy: "#2F9E44"
+    field: "#7048E8"
+    accent_focus: "#F76707"       # reserved for "look here now"
+  never_reuse_a_role_colour_for_another_role: true
+  colourblind_check: [deuteranopia, protanopia]
+
+method:
+  elicit_confront_resolve:
+    default_for_all_topics_with_a_documented_preconception: true
+    elicit: Question with a small number of discrete candidate answers, one of which is the misconception. Freeze, silence, no hints.
+    confront: Observable evidence contradicting the belief. State why the wrong answer is appealing.
+    resolve: Apply the correct principle across structured cases, cross-referencing the refuted idea.
+
+  bridging_analogies:
+    principle: Recruit correct intuitions, do not only attack wrong ones. Start from an anchor case where intuition already agrees with physics, then bridge in small steps to the target.
+    step_increment: at most one conceptual increment; if a step needs explaining, insert another bridge
+    does_not_fit_in_one_video: true
+    permitted_options:
+      - one_bridge_step_per_video
+      - shorten_chain_to_two_steps
+    forbidden: compressing four bridge steps into one video
+    chains:
+      - target: A rigid table exerts an upward force on a book
+        anchor: A compressed spring pushes up
+        bridge: [spring, foam, visibly_bending_plank, table]
+      - target: Air exerts pressure on us
+        anchor: Water pressure felt when diving
+        bridge: [deep_water, shallow_water, dense_air_column, air]
+      - target: A satellite in orbit is falling
+        anchor: A thrown ball falls in a curve
+        bridge: [slow_throw, fast_throw, very_fast_throw, orbit]
+      - target: Current is not consumed by a bulb
+        anchor: Water in a closed loop of pipe
+        bridge: [closed_pipe_loop, loop_with_narrow_section, circuit]
+      - target: Both objects feel equal force in a collision
+        anchor: Two people pushing off on skates
+        bridge: [equal_skaters, unequal_skaters, truck_and_fly]
+
+  representations:
+    min_per_video: 3
+    available: [verbal, diagram_with_interactions_explicit, graph, algebraic_relation, numerical_with_units]
+    requirement: Show the translation between them. Put two on screen simultaneously and change one so the other visibly responds.
+    forbidden: presenting representations in sequence without showing translation
+
+  graphs:
+    applies_whenever_a_graph_appears: true
+    rules:
+      - Cue slope and height separately and state that they answer different questions.
+      - Show any position-time graph alongside the actual motion and state that the graph is not the path.
+      - Compute every slope as delta-y over delta-x with both deltas drawn, even when the line passes through the origin.
+      - Shade the area under the curve and name the quantity when it is meaningful.
+    known_failures: [slope_height_confusion, graph_as_picture, non_origin_slopes, area_under_curve_ignored]
+
+  diagrams:
+    force_labels: agent_on_object       # "rope on crate", never "F1" or "the force"
+    one_force_diagram_per_object: true
+    draw_system_boundary: true
+    fictitious_forces_require_naming_the_frame: true
+    axes_before_signs: true             # g = -9.81 m/s2 is meaningless until the axis is on screen
+    vectors_to_relative_scale_or_state_otherwise: true
+    draw_the_field_not_one_arrow_when_the_video_is_about_the_field: true
+
+  quantitative:
+    units_on_every_value: true
+    symbolic_before_numerical: true
+    plausibility_check_required: [order_of_magnitude, sign, limiting_case]
+    min_limiting_cases_stated: 1
+
+misconceptions:
+  min_addressed_per_video: 1
+  do_not_invent: true
+  register:
+    - claim: Motion requires a continuing force
+      domain: [newton_1, dynamics]
+    - claim: Heavier objects fall faster
+      domain: [free_fall, gravitation]
+    - claim: The normal force is not a real force; the table is passive
+      domain: [statics, newton_3]
+    - claim: Action and reaction cancel out, so nothing accelerates
+      domain: [newton_3]
+    - claim: Current is used up as it passes through components
+      domain: [circuits]
+    - claim: A battery supplies constant current regardless of the circuit
+      domain: [circuits]
+    - claim: Heat and temperature are the same thing
+      domain: [thermodynamics]
+    - claim: Orbit is a balance between gravity and centrifugal force
+      domain: [gravitation]
+    - claim: Energy is used up and disappears
+      domain: [energy_conservation]
+    - claim: The bigger or faster object exerts more force in a collision
+      domain: [momentum, newton_3]
+    - claim: Light travels further at night
+      domain: [optics]
+    - claim: Mass is lost when an object is heated or a gas escapes
+      domain: [conservation_laws]
+    - claim: A graph's height read where its slope is needed
+      domain: [kinematics, graphing]
+
+banned:
+  - Formula first; presenting an equation before the phenomenon it describes
+  - Any force with no agent
+  - Centrifugal force in an inertial-frame explanation
+  - Numerical substitution before the symbolic result
+  - A signed quantity before the axes are on screen
+  - Plugging numbers into an equation the video has not motivated
+  - Animating a physically wrong picture for visual appeal
+  - More than one concept or more than one idea unit in a video
+  - Speeding up narration to fit the budget
+  - Cutting the consolidate beat to save time
+  - A prediction prompt the video answers in under 3 seconds
+  - Interesting but irrelevant asides
+  - Any phrase in narration.banned_phrases
+
+gate:
+  fail_closed: true
+  word_budget_tolerance: 0.10
+  machine_checks:
+    - idea_units == 1
+    - duration_seconds <= limits.hard_cap_seconds
+    - duration_seconds within stage target_seconds
+    - every beat duration within its stage band
+    - sum of beat durations == duration_seconds
+    - actual_words within word_budget_tolerance of computed budget
+    - actual_words <= stage max_script_words
+    - reset_beat_count >= stage min_reset_beats
+    - max_reset_gap including tail <= stage reset_gap_max_seconds
+    - beat_3 is among the reset beats
+    - every prediction beat has >= 3.0 s silence
+    - chain.ends_unresolved == false
+    - chain.of <= chains.max_links
+    - every chain link >= chains.min_link_seconds
+    - chain.bridge_in word count <= chains.bridge_max_words
+    - chain position visible on resting frame when chain.of > 1
+    - representations declared >= method.representations.min_per_video
+    - if a graph appears, slope and height are separately cued and deltas are drawn
+    - every force label is agent_on_object
+    - axes drawn before any signed quantity appears
+    - units present on every numerical value
+    - simultaneous animated changes <= 1 at every frame
+    - simultaneous cues <= 1 at every frame
+    - on-screen objects <= stage max_simultaneous_objects at every frame
+    - no on-screen text string appears verbatim in the narration
+    - narration contains zero entries from narration.banned_phrases
+    - resting frame >= 1.5 s and static
+    - all colours drawn from visuals.palette
+    - colourblind simulation passes for visuals.colourblind_check
+  judgement_checks:
+    - Elicit-confront-resolve is the actual structure, not a decoration
+    - The confrontation shows failure rather than asserting it
+    - An anchoring intuition was identified and used where one exists
+    - Translation between representations is shown live, not sequentially
+    - Symbolic result precedes numerical substitution and at least one limiting case is stated
+    - At least one misconception from the register stated and refuted
+    - Every visual element carries meaning the narration does not
+    - No animation contradicts the physics being taught
+
+video_spec_required_fields:
+  - video_id
+  - concept_id
+  - subject
+  - stage
+  - video_type            # keys of video_types
+  - topic
+  - idea_units
+  - duration_seconds
+  - beat_durations
+  - narration_wpm
+  - word_budget
+  - actual_words
+  - reset_beats
+  - max_reset_gap_seconds
+  - misconceptions_addressed
+  - representations
+  - anchoring_intuition
+  - chain

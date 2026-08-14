@@ -1,0 +1,319 @@
+subject: mathematics
+version: 1
+narration_language: en
+learner_l1: de
+
+limits:
+  hard_cap_seconds: 180
+  idea_units_per_video: 1
+  over_budget_action: split_into_another_video   # never speed up narration, never cut beat 7
+  stages:
+    sek1:
+      label: "Klasse 7-10, ages 12-16"
+      target_seconds: [130, 170]
+      narration_wpm: [120, 135]
+      silence_reserve: 0.20
+      max_script_words: 300
+      max_sentence_words: 18
+      reset_gap_max_seconds: 90
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 5
+      min_static_hold_seconds: 1.5
+      max_words_per_label: 5
+    sek2:
+      label: "Klasse 11-13, ages 16-19"
+      target_seconds: [155, 180]
+      narration_wpm: [135, 150]
+      silence_reserve: 0.15
+      max_script_words: 360
+      max_sentence_words: 25
+      reset_gap_max_seconds: 110
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 7
+      min_static_hold_seconds: 1.2
+      max_words_per_label: 7
+
+video_types:
+  concept: { duration_seconds: [120, 180], chains_by: sub_concept }
+  worked:  { duration_seconds: [120, 180], chains_by: fading_sequence }
+  drill:   { duration_seconds: [60, 120],  chains_by: none }
+  no_type_gets_a_cap_exception: true
+
+idea_units:
+  count_one_for_each:
+    - new term or symbol the learner must retain
+    - new relationship between quantities already known
+    - procedural step that cannot be chunked with the previous step
+    - required switch between representations
+  do_not_count:
+    - review of established material
+    - repetition of a procedure already shown
+    - context, motivation, framing
+    - anything not retained past the video
+
+beats:
+  order_mandatory: true
+  none_removable: true
+  sequence:
+    - id: anchor
+      do: One specific concrete case the concept will explain. Keep it visible or referenced all video.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: pretrain
+      do: Name the symbols and terms before the explanation uses them.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: elicit
+      do: Pose the question, take a commitment, hold silence. Learner must be able to be wrong.
+      seconds: { sek1: [18, 24], sek2: [18, 22] }
+      min_silence_seconds: 3.0
+      is_reset_beat_1: true
+      interactive: true
+    - id: confront
+      do: Show the common wrong answer failing. Show the failure, do not assert it. Never mock it.
+      seconds: { sek1: [22, 32], sek2: [28, 38] }
+      required_every_video: true
+      must_name_misconception_from: misconceptions
+    - id: resolve
+      do: Build the correct account on the anchor, one step at a time. Cross-reference the refuted idea once.
+      seconds: { sek1: [40, 55], sek2: [55, 75] }
+    - id: vary
+      do: Change one feature. Include a non-example.
+      seconds: { sek1: [12, 20], sek2: [18, 28] }
+      example_set: see method.example_set
+    - id: consolidate
+      do: Static summary max 20 words, misconception marked refuted, one forward link. No new content.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+
+  productive_failure_opener:
+    allowed_stages: [sek2]
+    allowed_for_procedural: false
+    do: Pose a problem the learner cannot yet solve before beat 2. Instruction must follow in the same video. Frame failure as informative, never as a test.
+
+reset_beats:
+  interactive_types: [prediction, check_question, pause_and_try]
+  passive_types: [micro_recap, register_shift]
+  beat_3_counts_as_reset_1: true
+
+chains:
+  formula: idea_units + representation_switch + worked_example
+  max_links: 5
+  min_link_seconds: 90
+  boundary: sub_concept_only
+  bridge_max_words: 15
+  ends_unresolved_allowed: false
+  show_chain_position: true
+  templates:
+    conceptual: [grundvorstellung, procedure_built_on_it, variation_and_non_examples]
+    worked: [full_example, faded, completion_problem]
+  rules:
+    - Every link is independently complete with all seven beats, its own anchor and its own consolidation.
+    - Never end a link on an unresolved misconception. No cliffhangers.
+    - Split by sub-concept, never by beat. If no conceptual boundary exists, recount the idea units.
+    - Each link after the first opens by stating the result of the previous link. Never re-argue it.
+    - Show chain position on the resting frame.
+
+narration:
+  word_budget_formula: (seconds / 60) * wpm * (1 - silence_reserve)
+  rules:
+    - Never read on-screen text aloud. On-screen text is keywords and symbols only.
+    - Strip all filler. The learner controls the pause button.
+    - Use second person. "you", "we", "let's". Never "one observes that".
+    - One idea per sentence.
+    - No idioms. No phrasal verbs where a plain verb exists. Use "increases", not "goes up".
+    - At most one subordinate clause per sentence.
+    - Speak a symbol in full on first use, then abbreviate consistently. Same symbol read the same way library-wide.
+  silence_minimums_seconds:
+    after_transformation: 1.0
+    before_reveal: 1.5
+    prediction_prompt: 3.0
+    resting_frame: 1.5
+  notation:
+    decimal_separator_on_screen: "."
+    state_decimal_convention_once_per_series: true
+    thousands_separator_on_screen: " "     # thin space, never a comma
+  banned_phrases:
+    gatekeeping: ["as you can see", "obviously", "clearly,", "simply", "it's just", "trivially"]
+    teleology: ["wants to", "tries to", "likes to", "prefers to", "seeks to", "needs to"]
+    evasion: ["it can be shown that", "trust me", "beyond the scope of this video"]
+    filler: ["um", "uh", "so,", "okay so", "as I said"]
+  banned_false_friends: [eventually, actually, sensible, control]
+
+visuals:
+  rules:
+    - Keep a persistent anchor panel. The governing equation or diagram holds a fixed region and stays visible while animation happens around it.
+    - Build cumulatively rather than replacing. When a clear is unavoidable, restate what carried over.
+    - One animated change at a time. Never two simultaneous changes in different screen regions.
+    - One cue at a time. Cue at the moment of relevance, not before or after.
+    - Place labels adjacent to what they label. No legends, no keys, no callouts resolved elsewhere.
+    - End on a static resting frame that is screenshot-worthy. No fade-out on a moving object.
+    - Include nothing decorative. Every element carries meaning the narration does not.
+    - Never animate a transition between unrelated states. Cut instead.
+    - Never place text where an animation will pass through it.
+  cue_preference: [colour, highlight, arrow]   # arrows for direction and causation only
+  max_simultaneous_animated_changes: 1
+  max_simultaneous_cues: 1
+  colour_encodes_meaning_alone: false
+  palette:
+    known_quantity: "#4C6EF5"
+    unknown_quantity: "#F59F00"
+    construction: "#868E96"
+    result: "#2F9E44"
+    counterexample: "#E03131"
+    accent_focus: "#F76707"       # reserved for "look here now"
+  colourblind_check: [deuteranopia, protanopia]
+
+method:
+  grundvorstellung:
+    required_before_first_symbol: true
+    second_grundvorstellung_costs_idea_units: 1
+    reference:
+      fraction: [part_whole, measure, operator, quotient, ratio]
+      negative_number: [opposite, position_on_a_line, transformation]
+      function: [mapping, covariation, object_in_its_own_right]
+      derivative: [local_rate_of_change, tangent_slope, local_amplification_factor, sensitivity]
+      integral: [area, accumulation, antiderivative, mean_value]
+      probability: [long_run_frequency, degree_of_belief, proportion_of_sample_space]
+      logarithm: [inverse_of_exponentiation, order_of_magnitude, repeated_division_count]
+      vector: [displacement, arrow_in_space, list_of_components]
+
+  cra:
+    required: true
+    sequence: [concrete, representational, abstract]
+    downward_traversal_required_in_beat: vary
+    definitions:
+      concrete: countable manipulable instance; discrete objects that can be grouped, split, moved
+      representational: structure without physicality; number line, area model, bar model, arrow diagram
+      abstract: symbols
+    rules:
+      - Never open at the abstract level for a first encounter.
+      - Never leave a level without showing the same instance at the next level side by side before the previous disappears.
+      - sek2 may compress the concrete stage but may not skip it for a genuinely new object.
+
+  worked_examples:
+    fade_direction: end_backwards
+    sequence: [full_example, faded, completion_problem]
+    every_step_carries_a_reason: true
+    reason_example: "subtract 3 from both sides because we want x alone"
+    start_stage_if_procedure_already_met: 2
+
+  example_set:
+    required_in_beat: vary
+    min_items: 4
+    items:
+      - prototype: the cleanest case
+      - surface_variation: different numbers, identical structure
+      - structural_variation: boundary stretched; negative, zero, fractional, reversed
+      - non_example: looks like it applies but does not; state why
+    hold_constant_everything_not_the_point: true
+    state_on_screen_what_changed: true
+
+  curriculum_tags:
+    kompetenzen:
+      K1: argumentieren
+      K2: probleme_loesen
+      K3: modellieren
+      K4: darstellungen_verwenden
+      K5: symbolisch_formal_technisch_arbeiten
+      K6: kommunizieren
+    leitideen:
+      L1: algorithmus_und_zahl
+      L2: messen
+      L3: raum_und_form
+      L4: funktionaler_zusammenhang
+      L5: daten_und_zufall
+    min_share_k3_or_k4_primary: 0.25
+    k3_k4_require_produce_something_reset_beat: true
+
+misconceptions:
+  min_addressed_per_video: 1
+  do_not_invent: true
+  register:
+    - claim: Doubling a side doubles the area; scaling a length scales volume by the same factor
+      id: illusion_of_linearity
+      domain: [geometry, similarity, scaling, probability]
+    - claim: The equals sign means compute the answer rather than the same value
+      domain: [algebra, equation_solving]
+    - claim: Multiplication always makes bigger and division always makes smaller
+      domain: [fractions, decimals, rates]
+    - claim: A longer decimal is a bigger number
+      domain: [decimals, ordering, error_bounds]
+    - claim: A negative exponent gives a negative result
+      domain: [powers, standard_form, exponentials]
+    - claim: Cancelling is a permitted move rather than a consequence of division
+      domain: [algebraic_fractions]
+    - claim: A graph's height is confused with its slope
+      domain: [functions, calculus, kinematics]
+    - claim: A variable is one specific unknown number, not a varying quantity
+      domain: [functions, parameters, proof]
+    - claim: The probability of a repeated event scales linearly
+      domain: [probability, distributions]
+
+banned:
+  - Formal proof before intuition for the result being proved
+  - Symbol manipulation with no stated referent
+  - Introducing notation in the same breath as the idea it denotes
+  - More than one concept or more than one idea unit in a video
+  - Speeding up narration to fit the budget
+  - Cutting the consolidate beat to save time
+  - A prediction prompt the video answers in under 3 seconds
+  - A real-world application nobody would actually do this way
+  - Interesting but irrelevant asides
+  - Any phrase in narration.banned_phrases
+
+gate:
+  fail_closed: true
+  word_budget_tolerance: 0.10
+  machine_checks:
+    - idea_units == 1
+    - duration_seconds <= limits.hard_cap_seconds
+    - duration_seconds within stage target_seconds
+    - every beat duration within its stage band
+    - sum of beat durations == duration_seconds
+    - actual_words within word_budget_tolerance of computed budget
+    - actual_words <= stage max_script_words
+    - reset_beat_count >= stage min_reset_beats
+    - max_reset_gap including tail <= stage reset_gap_max_seconds
+    - beat_3 is among the reset beats
+    - every prediction beat has >= 3.0 s silence
+    - chain.ends_unresolved == false
+    - chain.of <= chains.max_links
+    - every chain link >= chains.min_link_seconds
+    - chain.bridge_in word count <= chains.bridge_max_words
+    - chain position visible on resting frame when chain.of > 1
+    - simultaneous animated changes <= 1 at every frame
+    - simultaneous cues <= 1 at every frame
+    - on-screen objects <= stage max_simultaneous_objects at every frame
+    - no on-screen text string appears verbatim in the narration
+    - narration contains zero entries from narration.banned_phrases
+    - resting frame >= 1.5 s and static
+    - all colours drawn from visuals.palette
+    - colourblind simulation passes for visuals.colourblind_check
+  judgement_checks:
+    - Grundvorstellung named explicitly before the first symbol
+    - CRA traversed and traversed downward at least once
+    - At least one misconception from the register stated and refuted, and the refutation shows failure
+    - Four-item example set present including a non-example
+    - Every worked step carries a reason, not just an operation
+    - Curriculum tags declared, and a produce-something beat present if K3 or K4 is primary
+    - Every visual element carries meaning the narration does not
+
+video_spec_required_fields:
+  - video_id
+  - concept_id
+  - subject
+  - stage
+  - video_type            # keys of video_types
+  - topic
+  - idea_units
+  - duration_seconds
+  - beat_durations
+  - narration_wpm
+  - word_budget
+  - actual_words
+  - reset_beats
+  - max_reset_gap_seconds
+  - misconceptions_addressed
+  - grundvorstellung
+  - curriculum_tags
+  - chain

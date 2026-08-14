@@ -1,0 +1,394 @@
+subject: chemistry
+version: 1
+narration_language: en
+learner_l1: de
+
+limits:
+  hard_cap_seconds: 180
+  idea_units_per_video: 1
+  over_budget_action: split_into_another_video   # never speed up narration, never cut beat 7
+  stages:
+    sek1:
+      label: "Klasse 7-10, ages 12-16"
+      target_seconds: [130, 170]
+      narration_wpm: [120, 135]
+      silence_reserve: 0.20
+      max_script_words: 300
+      max_sentence_words: 18
+      reset_gap_max_seconds: 90
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 5
+      min_static_hold_seconds: 1.5
+      max_words_per_label: 5
+    sek2:
+      label: "Klasse 11-13, ages 16-19"
+      target_seconds: [155, 180]
+      narration_wpm: [135, 150]
+      silence_reserve: 0.15
+      max_script_words: 360
+      max_sentence_words: 25
+      reset_gap_max_seconds: 110
+      min_reset_beats: 2
+      min_interactive_reset_beats: 1
+      max_simultaneous_objects: 7
+      min_static_hold_seconds: 1.2
+      max_words_per_label: 7
+
+video_types:
+  concept: { duration_seconds: [120, 180], chains_by: sub_concept }
+  worked:  { duration_seconds: [120, 180], chains_by: step_sequence }
+  drill:   { duration_seconds: [60, 120],  chains_by: none }
+  no_type_gets_a_cap_exception: true
+
+idea_units:
+  count_one_for_each:
+    - new term or symbol the learner must retain
+    - new relationship between quantities already known
+    - procedural step that cannot be chunked with the previous step
+    - required switch between Johnstone levels
+  do_not_count:
+    - review of established material
+    - repetition of a procedure already shown
+    - context, motivation, framing
+    - anything not retained past the video
+
+beats:
+  order_mandatory: true
+  none_removable: true
+  sequence:
+    - id: anchor
+      do: One observable phenomenon at the macro level. Keep it visible or referenced all video.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: pretrain
+      do: Name the entities, terms and symbols before the explanation uses them.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+    - id: elicit
+      do: Learner commits to a particle-level prediction before seeing any animation. Freeze. Hold silence.
+      seconds: { sek1: [18, 24], sek2: [18, 22] }
+      min_silence_seconds: 3.0
+      is_reset_beat_1: true
+      interactive: true
+      requires_particle_level_prediction: true
+    - id: confront
+      do: Show the animation. Compare it against the prediction. Make the correction explicit.
+      seconds: { sek1: [22, 32], sek2: [28, 38] }
+      required_every_video: true
+      must_name_misconception_from: misconceptions
+    - id: resolve
+      do: Build the correct account, linking the levels present.
+      seconds: { sek1: [40, 55], sek2: [55, 75] }
+    - id: vary
+      do: Apply to a new scenario. Include a case that looks similar and is not.
+      seconds: { sek1: [12, 20], sek2: [18, 28] }
+    - id: consolidate
+      do: Static summary max 20 words, misconception marked refuted, one forward link. No new content.
+      seconds: { sek1: [12, 18], sek2: [12, 18] }
+
+reset_beats:
+  interactive_types: [prediction, check_question, pause_and_try]
+  passive_types: [micro_recap, register_shift]
+  beat_3_counts_as_reset_1: true
+
+chains:
+  formula: idea_units + level_switch + worked_example
+  max_links: 5
+  min_link_seconds: 90
+  boundary: sub_concept_only
+  bridge_max_words: 15
+  ends_unresolved_allowed: false
+  show_chain_position: true
+  template: [macro, submicro, symbolic]
+  one_level_per_link: true
+  link_content:
+    macro: Observe the phenomenon and predict what you would see
+    submicro: Animate the particle level and correct the prediction
+    symbolic: Formula and equation, then apply
+  rules:
+    - Every link is independently complete with all seven beats, its own anchor and its own consolidation.
+    - Never end a link on an unresolved misconception. No cliffhangers.
+    - Split by sub-concept, never by beat. If no conceptual boundary exists, recount the idea units.
+    - Each link after the first opens by stating the result of the previous link. Never re-argue it.
+    - Show chain position on the resting frame.
+
+narration:
+  word_budget_formula: (seconds / 60) * wpm * (1 - silence_reserve)
+  rules:
+    - Never read on-screen text aloud. On-screen text is keywords and symbols only.
+    - Strip all filler. The learner controls the pause button.
+    - Use second person. "you", "we", "let's". Never "one observes that".
+    - One idea per sentence.
+    - No idioms. No phrasal verbs where a plain verb exists.
+    - At most one subordinate clause per sentence.
+    - Speak formulae consistently library-wide. Pick either the letter form or the name form and never vary it.
+    - Read subscripts and coefficients distinctly.
+  silence_minimums_seconds:
+    after_transformation: 1.0
+    before_reveal: 1.5
+    prediction_prompt: 3.0
+    resting_frame: 1.5
+  notation:
+    decimal_separator_on_screen: "."
+    state_decimal_convention_once_per_series: true
+    thousands_separator_on_screen: " "     # thin space, never a comma
+  banned_phrases:
+    teleology:
+      - "wants a full"
+      - "wants to"
+      - "tries to"
+      - "likes to"
+      - "needs to gain"
+      - "prefers to"
+      - "is happy"
+      - "is satisfied"
+      - "seeks to"
+      - "nature abhors"
+    chemistry:
+      - "energy stored in the bond"
+      - "breaking bonds releases energy"
+      - "gives its electron to"
+    gatekeeping: ["as you can see", "obviously", "clearly,", "simply", "it's just", "trivially"]
+    evasion: ["it can be shown that", "trust me", "beyond the scope of this video"]
+    filler: ["um", "uh", "so,", "okay so", "as I said"]
+  banned_false_friends: [eventually, actually, sensible, control]
+  required_substitutions:
+    - banned: Atoms want a full outer shell
+      use: Configurations with a filled outer shell are lower in energy
+    - banned: Electrons are happy or stable or satisfied
+      use: The arrangement has lower energy
+    - banned: The atom needs two more electrons
+      use: Two additional electrons would complete the shell
+    - banned: Sodium gives its electron to chlorine
+      use: The electron transfers, and the resulting ions attract
+    - banned: The reaction wants to reach equilibrium
+      use: Forward and reverse rates become equal
+    - banned: Water likes to dissolve salt
+      use: Ion-dipole interactions release enough energy to offset the lattice
+    - banned: The molecule tries to minimise repulsion
+      use: The lowest-energy geometry maximises the angle between pairs
+    - banned: Nature abhors a vacuum
+      use: null      # delete, say nothing
+    - banned: Energy is stored in the bond and released when it breaks
+      use: see energetics
+
+visuals:
+  rules:
+    - Keep a persistent anchor panel. The governing picture or equation holds a fixed region and stays visible while animation happens around it.
+    - Display a persistent level badge naming the Johnstone level currently on screen. Change it when the level changes.
+    - Build cumulatively rather than replacing. When a clear is unavoidable, restate what carried over.
+    - One animated change at a time. Never two simultaneous changes in different screen regions.
+    - One cue at a time. Cue at the moment of relevance, not before or after.
+    - Place labels adjacent to what they label. No legends, no keys.
+    - End on a static resting frame that is screenshot-worthy.
+    - Include nothing decorative. Every element carries meaning the narration does not.
+    - Never place text where an animation will pass through it.
+  level_badge_required: true
+  cue_preference: [colour, highlight, arrow]
+  max_simultaneous_animated_changes: 1
+  max_simultaneous_cues: 1
+  colour_encodes_meaning_alone: false
+  palette:
+    bond_forming: "#2F9E44"
+    bond_breaking: "#E03131"
+    energy_flow: "#F59F00"
+    accent_focus: "#F76707"       # reserved for "look here now"
+  element_colours:
+    H: "#FFFFFF"
+    C: "#2B2B2B"
+    N: "#3050F8"
+    O: "#E03131"
+    Na: "#AB63FA"
+    Cl: "#2F9E44"
+    S: "#F5C700"
+    Fe: "#D9730D"
+  element_colours_fixed_library_wide: true
+  colourblind_check: [deuteranopia, protanopia]
+
+method:
+  johnstone:
+    levels:
+      macro: observable properties; colour, temperature, mass, bubbles, dissolution
+      submicro: particles and their motion and interaction
+      symbolic: formulae, equations, the mole
+    min_levels_connected_per_video: 2
+    max_levels_first_encounter: 2
+    default_pair_for_first_encounter: [macro, submicro]
+    first_encounter_sequence: [macro, submicro, symbolic]
+    sequence_across_chain_not_within_one_video: true
+    rules:
+      - Never present a level in isolation. Every video connects at least two levels explicitly.
+      - Never introduce all three levels at once on a first encounter.
+      - Introduce symbolic only once the particle picture is secure.
+
+  spine_mapping:
+    observe_phenomenon_macro: anchor
+    name_entities_and_terms: pretrain
+    learner_draws_or_predicts_particle_picture: elicit
+    show_animation: confront
+    compare_prediction_against_animation_and_correct: [confront, resolve]
+    relate_particle_model_to_macro_and_symbolic: resolve
+    apply_to_new_scenario: vary
+
+  submicro_animation:
+    all_mandatory: true
+    animation_budget_seconds: 40       # plan the confront and resolve beats around this
+    min_visible_particles: 20
+    forbidden_particle_count: 2
+    thermal_motion_required: true
+    static_permitted_only_for: lattice_sites_which_still_vibrate
+    solvent_required_in_solution: true
+    solvent_must_be: [present, oriented, interacting]
+    correct_relative_spacing: true
+    spacing_order: gas_much_greater_than_liquid_approximately_equal_to_solid
+    particle_sizes_proportionate: true
+    show_unsuccessful_collisions: true
+    atoms_visibly_conserved: true
+    electron_orbits_forbidden: true
+    electrons_shown_as: [density, regions, omitted]
+
+  octet_rule:
+    usable_as: pattern
+    usable_as_cause: false
+
+  energetics:
+    bond_breaking: endothermic
+    bond_forming: exothermic
+    net_sign_from: balance_of_the_two
+    must_refute_exothermic_bond_breaking: true
+    applies_to_any_video_touching: [energetics, combustion, respiration, bond_enthalpy]
+    canonical_framing:
+      phenomenon: ammonium nitrate dissolving in water
+      energy_in: lattice and hydrogen bonds break
+      energy_out: hydration bonds form
+      result: energy in exceeds energy out, the solution cools
+
+  curriculum_tags:
+    basiskonzepte:
+      - stoff_teilchen
+      - struktur_eigenschaft
+      - chemische_reaktion
+      - energie
+    untaggable_video_is_probably_not_chemistry: true
+
+misconceptions:
+  min_addressed_per_video: 1
+  do_not_invent: true
+  register:
+    - claim: Bond breaking releases energy
+      domain: [energetics, combustion, respiration]
+      priority: highest
+    - claim: Mass is lost when a gas is produced or a substance burns
+      domain: [conservation_of_matter]
+    - claim: Dissolving and melting are the same process
+      domain: [states, solutions, bonding]
+    - claim: A dissolved solid has ceased to exist
+      domain: [solutions, conservation]
+    - claim: At equilibrium the reaction has stopped
+      domain: [equilibrium]
+    - claim: Equilibrium means equal concentrations
+      domain: [equilibrium]
+    - claim: Strong acid means concentrated acid
+      domain: [acids_and_bases]
+    - claim: Atoms are destroyed and new ones created in a reaction
+      domain: [reactions, conservation]
+    - claim: Subscripts and coefficients are interchangeable
+      domain: [formulae, stoichiometry]
+    - claim: Ionic compounds consist of molecules
+      domain: [bonding, structure]
+    - claim: The mole is a mass
+      domain: [stoichiometry]
+    - claim: A single atom has macroscopic properties, such as one copper atom being shiny or malleable
+      domain: [structure_property_relations]
+    - claim: Chemical change requires visible change
+      domain: [reactions]
+    - claim: Intramolecular and intermolecular forces are the same kind of thing
+      domain: [bonding, states, boiling]
+
+banned:
+  - Any teleological or anthropomorphic phrasing
+  - The octet rule presented as a cause
+  - Balancing equations before atom conservation is established at the particle level
+  - Animating a reaction with fewer than 20 visible particles
+  - Drawing ions in solution without solvent
+  - Static particles in any video about states, dissolution, diffusion, kinetics or equilibrium
+  - Electron orbits
+  - A symbolic-level-only video on a first encounter
+  - All three Johnstone levels at once for a first-time learner
+  - Inconsistent element colouring across the library
+  - More than one concept or more than one idea unit in a video
+  - Speeding up narration to fit the budget
+  - Cutting the consolidate beat to save time
+  - A prediction prompt the video answers in under 3 seconds
+  - Interesting but irrelevant asides
+  - Any phrase in narration.banned_phrases
+
+gate:
+  fail_closed: true
+  word_budget_tolerance: 0.10
+  machine_checks:
+    - idea_units == 1
+    - duration_seconds <= limits.hard_cap_seconds
+    - duration_seconds within stage target_seconds
+    - every beat duration within its stage band
+    - sum of beat durations == duration_seconds
+    - actual_words within word_budget_tolerance of computed budget
+    - actual_words <= stage max_script_words
+    - reset_beat_count >= stage min_reset_beats
+    - max_reset_gap including tail <= stage reset_gap_max_seconds
+    - beat_3 is among the reset beats
+    - every prediction beat has >= 3.0 s silence
+    - chain.ends_unresolved == false
+    - chain.of <= chains.max_links
+    - every chain link >= chains.min_link_seconds
+    - chain.bridge_in word count <= chains.bridge_max_words
+    - chain position visible on resting frame when chain.of > 1
+    - levels_connected >= method.johnstone.min_levels_connected_per_video
+    - levels_present <= method.johnstone.max_levels_first_encounter when first_encounter
+    - exactly one Johnstone level per chain link
+    - level badge present
+    - visible particle count >= method.submicro_animation.min_visible_particles
+    - thermal motion present
+    - solvent shown when aqueous
+    - relative spacing correct for the state of matter
+    - unsuccessful collisions shown
+    - atom counts trackable across the reaction
+    - no electron orbits
+    - element colours match visuals.element_colours exactly
+    - narration contains zero entries from narration.banned_phrases
+    - bond energetics stated correctly if energetics appear
+    - basiskonzept tag declared
+    - simultaneous animated changes <= 1 at every frame
+    - simultaneous cues <= 1 at every frame
+    - on-screen objects <= stage max_simultaneous_objects at every frame
+    - no on-screen text string appears verbatim in the narration
+    - resting frame >= 1.5 s and static
+    - colourblind simulation passes for visuals.colourblind_check
+  judgement_checks:
+    - The learner commits to a particle-level prediction before the animation
+    - Prediction and animation are compared and the correction is made explicit
+    - The levels present are genuinely connected, not merely both shown
+    - The octet rule, if used, is a pattern and not a cause
+    - At least one misconception from the register stated and refuted
+    - Every visual element carries meaning the narration does not
+
+video_spec_required_fields:
+  - video_id
+  - concept_id
+  - subject
+  - stage
+  - video_type            # keys of video_types
+  - topic
+  - idea_units
+  - duration_seconds
+  - beat_durations
+  - narration_wpm
+  - word_budget
+  - actual_words
+  - reset_beats
+  - max_reset_gap_seconds
+  - misconceptions_addressed
+  - levels_present
+  - level_this_link
+  - first_encounter
+  - curriculum_tags
+  - chain

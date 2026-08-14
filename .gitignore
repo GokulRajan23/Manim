@@ -1,0 +1,57 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files — secrets never enter git
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# vercel
+.vercel
+
+# --- Tafel ---
+
+# job artifacts: sources, audio, generated scenes, renders. Large and reproducible.
+/workspace/
+
+# SQLite metadata store
+/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# generated from the rules YAML by `npm run gen:theme` — never hand-edited
+/docker/python/tafel/palette.py
+/src/app/theme.generated.css
+
+# Manim scratch output if anything ever renders outside the container
+/media/

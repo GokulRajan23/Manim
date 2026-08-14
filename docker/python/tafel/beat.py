@@ -88,7 +88,23 @@ class BeatBase(Scene):
                 self.play(FadeIn(item, shift=UP * 0.15), run_time=step)
                 spent += step
 
+        # Generated content goes here, between the static frame and the hold.
+        #
+        # This is a hook rather than an override of `construct` on purpose. When a
+        # subclass overrode `construct` and called `super().construct()` first, the
+        # base had already spent the whole duration in its final wait, so every
+        # generated animation ran *past* the audio and was cut off by `-shortest`
+        # at mux time — scenes that rendered perfectly and showed nothing. With the
+        # hold last, a generated scene cannot change how long the beat lasts.
+        self.body()
+
         # Exact-length by construction: whatever the animations cost, the hold
         # makes the total equal DURATION. Reconciliation (§4.11) then has nothing
         # to correct, because the scene was never free to drift.
-        self.wait(max(self.DURATION - spent, 0.1))
+        elapsed = getattr(self.renderer, "time", None)
+        used = elapsed if isinstance(elapsed, (int, float)) else spent
+        self.wait(max(self.DURATION - used, 0.1))
+
+    def body(self):
+        """Override to draw the mathematics. The base handles timing."""
+        return None

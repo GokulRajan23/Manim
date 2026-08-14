@@ -93,15 +93,34 @@ export async function storyboard(
     `TOTAL narration budget: ${words} words. Aim for this total, do not undershoot it —`,
     "a script well under budget makes the beats too short for their duration bands.",
     "",
-    "Words per beat. These are not suggestions: each beat has its own duration band",
-    "and the word count is what puts it inside that band. Stay within ±15% of each.",
-    ...BEAT_IDS.map((id, i) => `  ${i + 1}. ${id} — ${perBeat[i]} words — ${SPINE[id]}`),
+    "Words per beat. These are not suggestions. Each beat has its own duration",
+    "band and the word count is the only thing putting it inside that band. At",
+    "this length a single extra sentence pushes a beat out of its band and the",
+    "whole lesson is rejected. Treat the maximum as hard.",
+    ...BEAT_IDS.map(
+      (i_, i) => `  ${i + 1}. ${BEAT_IDS[i]} — aim ${perBeat[i]}, MAX ${Math.round((perBeat[i] ?? 0) * 1.1)} words — ${SPINE[BEAT_IDS[i]!]}`,
+    ),
     "",
     "Rules that are checked:",
     "  - Never read the on-screen text aloud. On-screen text is keywords and symbols only.",
     "  - No 'clearly', 'as you can see', 'simply', 'obviously'.",
     "  - Short sentences, at most 18 words.",
     "  - The elicit beat must ask a real question and not answer it.",
+    "",
+    // The audience is 12-16 and hearing this in their second language: the
+    // rulebook records narration_language: en with learner_l1: de. Abstract
+    // phrasing is the failure mode, and it is not something the machine checks
+    // can catch — only the prompt can.
+    "How to say it. This learner is 12-16 years old and English is their second",
+    "language, so plainness is not a style choice here:",
+    "  - One idea per sentence. Prefer 8-12 words.",
+    "  - Everyday words over technical ones. Say 'goes up' before 'increases'.",
+    "  - Name a concrete thing before you name the rule about it. A ramp, a road,",
+    "    a staircase — then the word 'slope'.",
+    "  - Use numbers the learner can hold: 2, 3, 10, 50. Never a decimal you did",
+    "    not have to introduce.",
+    "  - Address the learner as 'you'. Say what to look at, not what is 'observed'.",
+    "  - Never use a term before the pretrain beat has named it.",
   ].join("\n");
 
   return structured(

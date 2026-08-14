@@ -125,8 +125,39 @@ export async function renderBeat(
   visual = "",
   /** 0..1 through the lesson, so the diagram develops across the seven beats. */
   emphasis = 1,
+  /** Generated scene source. When absent the deterministic scene renders. */
+  generated?: string,
 ): Promise<string> {
   const name = `beat_${String(index).padStart(2, "0")}`;
+
+  // A generated scene subclasses BeatBase and calls super().construct(), so the
+  // title, keywords and — crucially — the exact-duration hold still come from
+  // the deterministic base. Codegen adds to the frame; it cannot change how long
+  // the frame lasts, which is what keeps the sync invariant out of its reach.
+  if (generated) {
+    const header = [
+      `DURATION = ${seconds.toFixed(3)}`,
+      `VISUAL = ${JSON.stringify(visual)}`,
+      `EMPHASIS = ${emphasis.toFixed(3)}`,
+      `TITLE = ${JSON.stringify(title(beat))}`,
+      `LINES = ${JSON.stringify(beat.onScreen.slice(0, 3))}`,
+      `ROLE = ${JSON.stringify(beat.role)}`,
+    ].join("\n");
+    // The model writes the class; these bind its attributes to this beat's
+    // measured duration, so a generated scene cannot drift from its audio.
+    const bound = generated.replace(
+      /class\s+Beat\s*\(\s*BeatBase\s*\)\s*:/,
+      (match) =>
+        `${match}\n    DURATION = ${seconds.toFixed(3)}\n` +
+        `    VISUAL = ${JSON.stringify(visual)}\n` +
+        `    EMPHASIS = ${emphasis.toFixed(3)}\n` +
+        `    TITLE = ${JSON.stringify(title(beat))}\n` +
+        `    LINES = ${JSON.stringify(beat.onScreen.slice(0, 3))}\n` +
+        `    ROLE = ${JSON.stringify(beat.role)}`,
+    );
+    void header;
+    writeFileSync(join(dir, `${name}.py`), bound);
+  } else {
   // `Beat` must be *defined* here: Manim ignores an imported Scene subclass and
   // reports "there are no scenes inside that module".
   const py = [
@@ -143,6 +174,7 @@ export async function renderBeat(
     "",
   ].join("\n");
   writeFileSync(join(dir, `${name}.py`), py);
+  }
 
   await inImage(dir, [
     "-e", "PYTHONPATH=/work",

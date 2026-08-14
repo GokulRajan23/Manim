@@ -18,16 +18,28 @@ import { beatBands, loadRules } from "@/lib/rules/loader";
 import { durationScale } from "@/lib/gate/checks";
 import { storyboard } from "@/lib/pipeline/storyboard";
 import { findTopic } from "@/lib/pipeline/topics";
+import { generateScene } from "@/lib/pipeline/scene";
 import {
   concat, jobDir, mux, padSilence, probeSeconds, renderBeat, silenceSeconds, speak, vtt,
 } from "@/lib/render/pipeline";
 import type { BeatId, Subject } from "@/lib/rules/schema";
 
-/** The demo profile: short enough to iterate on, long enough to be a lesson. */
-const TOTAL_SECONDS = Number(process.env.DEMO_SECONDS ?? 60);
+/**
+ * The demo profile. Short enough to iterate on, long enough to be a lesson.
+ *
+ * There is a floor here worth knowing about: the rulebook's seven beats have
+ * per-beat minima that sum to about 128s at full scale, and each narration
+ * segment carries roughly a second of fixed lead-in and tail from the voice.
+ * Seven segments pay that seven times, so below about 35s the fixed overhead
+ * dominates and the beats stop fitting their own scaled bands.
+ */
+const TOTAL_SECONDS = Number(process.env.DEMO_SECONDS ?? 35);
 
 /** Minimum trailing stillness per beat. The rules never allow zero. */
 const HOLD_SECONDS = 0.5;
+
+/** Step 8 on/off. Off falls back to the deterministic scene for every beat. */
+const CODEGEN = process.env.CODEGEN !== "0";
 
 function log(message: string): void {
   console.log(`  ${new Date().toISOString().slice(11, 19)}  ${message}`);
@@ -98,6 +110,7 @@ async function main(): Promise<void> {
   const cues: { text: string; seconds: number }[] = [];
   const measured: { beat: typeof board.beats[number]["beat"]; audioMs: number; silenceMs: number; words: number }[] = [];
   const audio: { name: string; padded: string; seconds: number }[] = [];
+  let generatedCount = 0;
 
   for (const [index, beat] of board.beats.entries()) {
     const name = `beat_${String(index).padStart(2, "0")}`;
@@ -138,7 +151,42 @@ async function main(): Promise<void> {
     // Emphasis walks 0 → 1 across the spine so the figure builds with the
     // explanation instead of arriving complete in the first beat.
     const emphasis = index / (board.beats.length - 1);
-    const silent = await renderBeat(dir, index, beat, seconds, visual, emphasis);
+
+    // Step 8: try a generated scene, then fall back. Both the guard and the
+    // render are allowed to reject it; only a beat that survives both is used.
+    let generated: string | undefined;
+    if (CODEGEN) {
+      const scene = await generateScene(beat, seconds, join(process.cwd(), "docker/python/tafel"));
+      if (scene.code) {
+        generated = scene.code;
+        appendEvent(lesson.id, "codegen", `${beat.beat}: generated — ${scene.intent}`, { beatIdx: index });
+      } else {
+        appendEvent(lesson.id, "codegen", `${beat.beat}: fallback — ${scene.problems.join("; ")}`,
+          { level: "warn", beatIdx: index });
+      }
+    }
+
+    let silent: string;
+    try {
+      // When codegen succeeds the generated scene *is* the diagram; drawing the
+      // built-in one underneath would stack two figures in one frame.
+      silent = await renderBeat(dir, index, beat, seconds, generated ? "" : visual, emphasis, generated);
+      if (generated) generatedCount += 1;
+    } catch (error) {
+      // The guard passed but manim still refused it. The artifact guarantee is
+      // exactly this branch: render the deterministic scene at the same duration.
+      // Keep manim's own words: "which beat fell back" is far less useful than
+      // "why", and this is the signal the repair loop needs to get better.
+      const reason = String((error as { stderr?: string }).stderr ?? (error as Error).message)
+        .split("\n")
+        .filter((line) => /error|exception|Traceback|not defined|takes|argument/i.test(line))
+        .slice(-2)
+        .join(" | ")
+        .slice(0, 220);
+      appendEvent(lesson.id, "render", `${beat.beat}: generated scene failed to render — ${reason}`,
+        { level: "warn", beatIdx: index });
+      silent = await renderBeat(dir, index, beat, seconds, visual, emphasis);
+    }
     const merged = await mux(dir, silent, padded, `${name}.mp4`);
     const rendered = await probeSeconds(dir, merged);
     log(`${beat.beat.padEnd(12)} rendered ${rendered.toFixed(2)}s`);
@@ -159,7 +207,8 @@ async function main(): Promise<void> {
   updateLesson(lesson.id, { status: "ready" });
   appendEvent(lesson.id, "assemble", `lesson.mp4 ${total.toFixed(2)}s`);
 
-  console.log(`\n  lesson.mp4   ${total.toFixed(2)}s  (sum of beats ${expected.toFixed(2)}s, drift ${
+  console.log(`\n  scenes       ${generatedCount} generated, ${board.beats.length - generatedCount} fallback`);
+  console.log(`  lesson.mp4   ${total.toFixed(2)}s  (sum of beats ${expected.toFixed(2)}s, drift ${
     Math.abs(total - expected).toFixed(3)
   }s)`);
   console.log(`  ${join(dir, "lesson.mp4")}\n`);

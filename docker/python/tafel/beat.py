@@ -31,6 +31,15 @@ _ROLE = {
 
 _INK = "#FBFBFE"
 
+#: The frame is 14.2 x 8 units. These carve it into three bands that never
+#: overlap: the header (title + rule), the stage (diagrams), and the footer
+#: (keywords). Generated code draws into the stage and nothing else, so a scene
+#: cannot land on top of text it did not know was there.
+STAGE_TOP = 2.15
+STAGE_BOTTOM = -2.30
+STAGE_WIDTH = 12.0
+FOOTER_Y = -3.15
+
 
 class BeatBase(Scene):
     """Subclass this and set the four attributes below."""
@@ -58,17 +67,22 @@ class BeatBase(Scene):
         # develops with the explanation instead of arriving complete in beat one.
         diagram = build(self.VISUAL, self.EMPHASIS)
         if diagram is not None:
-            diagram.scale_to_fit_height(2.7).next_to(rule, DOWN, buff=0.45)
+            diagram.scale_to_fit_height(STAGE_TOP - STAGE_BOTTOM).move_to(
+                [0, (STAGE_TOP + STAGE_BOTTOM) / 2, 0]
+            )
 
         # On-screen text is keywords, never the narration read back (rules §4).
-        # With a diagram present the keywords sit under it and stay few, so the
-        # frame keeps to the object budget the rules allow.
-        lines = [str(line) for line in self.LINES][: (2 if diagram is not None else 3)]
+        # They live in the footer band, at a fixed y, whether or not there is a
+        # diagram. Previously they sat directly under the rule — in the middle of
+        # the frame — and generated scenes, which centre on ORIGIN, drew straight
+        # through them.
+        lines = [str(line) for line in self.LINES][:3]
         body = VGroup(*[Text(line, font=P.FONT, font_size=22, color=_INK) for line in lines])
         if lines:
-            anchor = diagram if diagram is not None else rule
-            body.arrange(RIGHT if diagram is not None else DOWN, buff=0.6)
-            body.next_to(anchor, DOWN, buff=0.4)
+            body.arrange(RIGHT, buff=0.7)
+            if body.width > STAGE_WIDTH:
+                body.scale_to_fit_width(STAGE_WIDTH)
+            body.move_to([0, FOOTER_Y, 0])
 
         # A short reveal, then a static hold. The hold is where the duration is
         # actually spent: the rules require stillness in every beat, and animating
@@ -96,7 +110,9 @@ class BeatBase(Scene):
         # generated animation ran *past* the audio and was cut off by `-shortest`
         # at mux time — scenes that rendered perfectly and showed nothing. With the
         # hold last, a generated scene cannot change how long the beat lasts.
+        before = set(id(m) for m in self.mobjects)
         self.body()
+        self._fit_to_stage(before)
 
         # Exact-length by construction: whatever the animations cost, the hold
         # makes the total equal DURATION. Reconciliation (§4.11) then has nothing
@@ -108,3 +124,32 @@ class BeatBase(Scene):
     def body(self):
         """Override to draw the mathematics. The base handles timing."""
         return None
+
+    def _fit_to_stage(self, before_ids):
+        """Move anything `body()` drew into the stage band, if it strayed out.
+
+        The contract tells generated code the exact rectangle it owns, but a
+        contract the renderer does not enforce is a suggestion. This is the
+        enforcement: whatever `body()` added is grouped and, only if it breaks
+        the band, scaled and shifted back inside it. A brief reflow is a far
+        better outcome than a caption sitting under an axis for the whole beat.
+        """
+        added = [m for m in self.mobjects if id(m) not in before_ids]
+        if not added:
+            return
+
+        group = VGroup(*added)
+        if group.width <= 0 or group.height <= 0:
+            return
+
+        height = STAGE_TOP - STAGE_BOTTOM
+        too_tall = group.height > height
+        too_wide = group.width > STAGE_WIDTH
+        strays = group.get_top()[1] > STAGE_TOP or group.get_bottom()[1] < STAGE_BOTTOM
+
+        if not (too_tall or too_wide or strays):
+            return
+
+        if too_tall or too_wide:
+            group.scale(min(height / group.height, STAGE_WIDTH / group.width))
+        group.move_to([group.get_center()[0], (STAGE_TOP + STAGE_BOTTOM) / 2, 0])

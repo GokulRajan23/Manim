@@ -43,6 +43,19 @@ HEX = re.compile(r"#[0-9a-fA-F]{3,8}\b")
 #: GROUND}` is perfectly legal and completely illegible.
 INVISIBLE_COLOUR = "GROUND"
 
+#: Names exported by the palette that are NOT colours, mapped to why. FONT is the
+#: typeface name "Inter", and `color=FONT` fails deep inside manim with
+#: `ValueError: Color Inter not found` — four of seven beats in one run, from a
+#: prompt that listed FONT alongside the colour roles. Rejecting it here turns a
+#: render-time traceback into a one-line repair instruction.
+NOT_A_COLOUR = {
+    "FONT": "FONT is the typeface name, not a colour. Use it as Text(font=FONT).",
+    INVISIBLE_COLOUR: (
+        "GROUND is the frame colour; drawing in it makes the object invisible. "
+        "Use KNOWN, UNKNOWN, CONSTRUCTION or RESULT."
+    ),
+}
+
 
 class Guard(ast.NodeVisitor):
     def __init__(self):
@@ -109,13 +122,8 @@ class Guard(ast.NodeVisitor):
     def visit_keyword(self, node):
         # `color=GROUND` and `axis_config={"color": GROUND}` both land here.
         if node.arg in ("color", "stroke_color", "fill_color", "background_stroke_color"):
-            if isinstance(node.value, ast.Name) and node.value.id == INVISIBLE_COLOUR:
-                self.reject(
-                    node,
-                    "invisible",
-                    "GROUND is the frame colour; drawing in it makes the object invisible. "
-                    "Use KNOWN, UNKNOWN, CONSTRUCTION or RESULT.",
-                )
+            if isinstance(node.value, ast.Name) and node.value.id in NOT_A_COLOUR:
+                self.reject(node, "not-a-colour", NOT_A_COLOUR[node.value.id])
         self.generic_visit(node)
 
     def visit_Dict(self, node):
@@ -124,15 +132,10 @@ class Guard(ast.NodeVisitor):
                 isinstance(key, ast.Constant)
                 and key.value in ("color", "stroke_color", "fill_color")
                 and isinstance(value, ast.Name)
-                and value.id == INVISIBLE_COLOUR
+                and value.id in NOT_A_COLOUR
             )
             if named_colour:
-                self.reject(
-                    node,
-                    "invisible",
-                    "GROUND is the frame colour; drawing in it makes the object invisible. "
-                    "Use KNOWN, UNKNOWN, CONSTRUCTION or RESULT.",
-                )
+                self.reject(node, "not-a-colour", NOT_A_COLOUR[value.id])
         self.generic_visit(node)
 
     def visit_Constant(self, node):

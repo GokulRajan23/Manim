@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Brand and subject tokens, emitted from the rulebook and src/lib/theme/tokens.ts
+   by `npm run gen:theme` (wired to predev/prebuild, so it is always current). */
+@import "./theme.generated.css";
+
+@theme inline {
+  --color-surface: var(--brand-surface);
+  --color-ink: var(--brand-text);
+  --color-primary: var(--brand-primary);
+  --color-subtle: var(--brand-subtle);
+  --color-accent: var(--brand-accent);
+  --color-frame: var(--frame-ground);
+
+  /* Inter reports; the book face speaks for the rulebook. See src/app/layout.tsx. */
+  --font-sans: var(--font-inter);
+  --font-book: var(--font-book);
+}
+
+@layer base {
+  body {
+    background: var(--brand-surface);
+    color: var(--brand-text);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    /* Inter's optical sizing and tabular figures: measured values must not shift
+       width as they tick upward during a render. */
+    font-variant-numeric: tabular-nums;
+    font-optical-sizing: auto;
+  }
+
+  /* One visible focus treatment, everywhere, using the brand's focus token. */
+  :focus-visible {
+    outline: 2px solid var(--brand-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--brand-subtle);
+    color: var(--brand-text);
+  }
+}
+
+@utility font-book {
+  font-family: var(--font-book), ui-serif, Georgia, serif;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* There is deliberately no entry animation on the spine. A staggered reveal needs
+   animation-fill-mode: backwards to hold each bar at scaleX(0) through its delay,
+   which means the most important content on the page is hidden until an animation
+   finishes — and stays hidden if it never runs. The chart is the signature; it
+   should be there the moment the page paints. */

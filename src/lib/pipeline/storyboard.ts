@@ -67,23 +67,35 @@ export async function storyboard(
   misconception: string,
   /** Seconds of deliberate stillness the narration must leave room for. */
   holdSeconds = 0,
+  /** Per-beat duration bands, already scaled to this target. Drives the split. */
+  bands?: Record<BeatId, readonly [number, number]>,
 ): Promise<Storyboard> {
   // The rulebook's own formula, (seconds / 60) * wpm, applied to the time
   // actually available for speech once the holds are taken out.
   const speaking = Math.max(totalSeconds - holdSeconds, totalSeconds * 0.4);
   const words = Math.round((speaking / 60) * SEGMENT_WPM);
 
+  // Words per beat, in proportion to that beat's duration band. An even split
+  // fails gate check B1: the resolve beat is budgeted three times the anchor, so
+  // giving them equal narration puts both outside their bands at once.
+  const shares = BEAT_IDS.map((id) => {
+    const [lo, hi] = bands?.[id] ?? [1, 1];
+    return (lo + hi) / 2;
+  });
+  const totalShare = shares.reduce((a, b) => a + b, 0);
+  const perBeat = shares.map((share) => Math.round((words * share) / totalShare));
+
   const prompt = [
     `Write a ${totalSeconds}-second explainer for Klasse ${concept.klasse} on: ${concept.topic}.`,
     `The single idea: ${concept.ideaUnits.items[0] ?? concept.topic}`,
     `The misconception to confront: ${misconception}`,
     "",
-    `TOTAL narration budget: about ${words} words across all seven beats. This is a hard`,
-    `ceiling — going over makes the video longer than ${totalSeconds} seconds. Roughly`,
-    `${Math.round(words / 7)} words per beat.`,
+    `TOTAL narration budget: ${words} words. Aim for this total, do not undershoot it —`,
+    "a script well under budget makes the beats too short for their duration bands.",
     "",
-    "The seven beats, in this exact order:",
-    ...BEAT_IDS.map((id, i) => `  ${i + 1}. ${id} — ${SPINE[id]}`),
+    "Words per beat. These are not suggestions: each beat has its own duration band",
+    "and the word count is what puts it inside that band. Stay within ±15% of each.",
+    ...BEAT_IDS.map((id, i) => `  ${i + 1}. ${id} — ${perBeat[i]} words — ${SPINE[id]}`),
     "",
     "Rules that are checked:",
     "  - Never read the on-screen text aloud. On-screen text is keywords and symbols only.",

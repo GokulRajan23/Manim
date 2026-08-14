@@ -9,19 +9,23 @@
 import { cpSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { workspaceDir } from "@/lib/db/client";
-import { appendEvent, recordArtifact, updateLesson } from "@/lib/db/repo";
+import { appendEvent, getLesson, recordArtifact, updateLesson } from "@/lib/db/repo";
+import type { ConceptSpec } from "@/lib/pipeline/concept";
 import { createLessonFromUpload } from "@/lib/pipeline/create-lesson";
+import { enforce, format, runPassA, runPassB } from "@/lib/gate/runner";
+import { beatBands, loadRules } from "@/lib/rules/loader";
+import { durationScale } from "@/lib/gate/checks";
 import { storyboard } from "@/lib/pipeline/storyboard";
 import {
-  concat, jobDir, mux, padSilence, probeSeconds, renderBeat, speak, vtt,
+  concat, jobDir, mux, padSilence, probeSeconds, renderBeat, silenceSeconds, speak, vtt,
 } from "@/lib/render/pipeline";
-import type { Subject } from "@/lib/rules/schema";
+import type { BeatId, Subject } from "@/lib/rules/schema";
 
 /** The demo profile: short enough to iterate on, long enough to be a lesson. */
 const TOTAL_SECONDS = Number(process.env.DEMO_SECONDS ?? 60);
 
 /** Trailing stillness per beat. Small, but the rules never allow zero. */
-const HOLD_SECONDS = 1.0;
+const HOLD_SECONDS = 0.5;
 
 function log(message: string): void {
   console.log(`  ${new Date().toISOString().slice(11, 19)}  ${message}`);
@@ -33,19 +37,45 @@ async function main(): Promise<void> {
   const subject = (process.argv[3] ?? "mathematics") as Subject;
   const klasse = Number(process.argv[4] ?? 8);
 
-  log(`ingest + extract: ${source}`);
-  const { lesson, concept } = await createLessonFromUpload({
-    subject,
-    klasse,
-    data: new Uint8Array(readFileSync(source)),
-    filename: source.split("/").pop(),
-  });
+  // `lesson:<id>` reuses an already-extracted concept. Extraction is the one
+  // non-deterministic stage and the most expensive; re-running it to iterate on
+  // the gate or the render would pay for a model call that changed nothing.
+  let lesson, concept;
+  if (source.startsWith("lesson:")) {
+    const existing = getLesson(source.slice("lesson:".length));
+    if (!existing?.concept) throw new Error(`no stored concept for ${source}`);
+    lesson = existing;
+    concept = existing.concept as ConceptSpec;
+    log(`reusing lesson ${lesson.id}`);
+  } else {
+    log(`ingest + extract: ${source}`);
+    ({ lesson, concept } = await createLessonFromUpload({
+      subject,
+      klasse,
+      data: new Uint8Array(readFileSync(source)),
+      filename: source.split("/").pop(),
+    }));
+  }
   log(`lesson ${lesson.id} — "${concept.topic}" (${concept.ideaUnits.count} idea units)`);
 
   log(`storyboard: seven beats, ${TOTAL_SECONDS}s budget`);
-  const board = await storyboard(concept, TOTAL_SECONDS, lesson.misconceptionId, HOLD_SECONDS * 7);
+  const cfg = loadRules(subject).config;
+  const scale = durationScale(cfg, TOTAL_SECONDS);
+  const scaled = Object.fromEntries(
+    Object.entries(beatBands(cfg, "sek1")).map(([k, [lo, hi]]) => [k, [lo * scale, hi * scale]]),
+  ) as unknown as Record<BeatId, readonly [number, number]>;
+  const board = await storyboard(concept, TOTAL_SECONDS, lesson.misconceptionId, HOLD_SECONDS * 7, scaled);
   const totalWords = board.beats.reduce((n, b) => n + b.narration.split(/\s+/).length, 0);
   log(`storyboard: ${totalWords} words`);
+  const { config } = loadRules(subject);
+  updateLesson(lesson.id, { status: "gating" });
+  const a = runPassA(lesson.id, config, {
+    beats: board.beats,
+    misconceptionId: lesson.misconceptionId,
+  }, TOTAL_SECONDS);
+  console.log(`\n  GATE PASS A\n${format(a.results)}\n`);
+  enforce(a);
+
   updateLesson(lesson.id, { status: "narrating" });
 
   const dir = jobDir(lesson.id, workspaceDir());
@@ -55,6 +85,8 @@ async function main(): Promise<void> {
 
   const parts: string[] = [];
   const cues: { text: string; seconds: number }[] = [];
+  const measured: { beat: typeof board.beats[number]["beat"]; audioMs: number; silenceMs: number; words: number }[] = [];
+  const audio: { name: string; padded: string; seconds: number }[] = [];
 
   for (const [index, beat] of board.beats.entries()) {
     const name = `beat_${String(index).padStart(2, "0")}`;
@@ -64,12 +96,28 @@ async function main(): Promise<void> {
     const padded = await padSilence(dir, raw, HOLD_SECONDS);
     const seconds = await probeSeconds(dir, padded);
 
+    measured.push({
+      beat: beat.beat,
+      audioMs: Math.round(seconds * 1000),
+      silenceMs: Math.round((await silenceSeconds(dir, padded)) * 1000),
+      words: beat.narration.trim().split(/\s+/).filter(Boolean).length,
+    });
+    audio.push({ name, padded, seconds });
+    log(`${beat.beat.padEnd(12)} narrated ${seconds.toFixed(2)}s`);
+  }
+
+  // Pass B runs on measured audio, before a single frame is rendered (§4.6).
+  const b = runPassB(lesson.id, config, { beats: measured }, TOTAL_SECONDS);
+  console.log(`\n  GATE PASS B\n${format(b.results)}\n`);
+  enforce(b);
+
+  updateLesson(lesson.id, { status: "rendering" });
+  for (const [index, beat] of board.beats.entries()) {
+    const { name, padded, seconds } = audio[index]!;
     const silent = await renderBeat(dir, index, beat, seconds);
     const merged = await mux(dir, silent, padded, `${name}.mp4`);
-
     const rendered = await probeSeconds(dir, merged);
-    log(`${beat.beat.padEnd(12)} audio ${seconds.toFixed(2)}s → video ${rendered.toFixed(2)}s`);
-
+    log(`${beat.beat.padEnd(12)} rendered ${rendered.toFixed(2)}s`);
     parts.push(merged);
     cues.push({ text: beat.narration, seconds: rendered });
   }

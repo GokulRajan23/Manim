@@ -42,6 +42,36 @@ export async function probeSeconds(dir: string, file: string): Promise<number> {
   return seconds;
 }
 
+/**
+ * Total silence in an audio file, in seconds — measured, not assumed.
+ *
+ * The gate's silence checks are only honest if silence means "the learner hears
+ * nothing", which includes the pauses inside the synthesised speech, not just the
+ * padding we added. Assuming only our own padding counted understated silence by
+ * more than half and pushed the measured narration rate below the rulebook floor
+ * — a failure that was an artefact of the measurement, not of the lesson.
+ *
+ * -35 dB over 0.3 s: quiet enough to ignore breath noise, long enough that a gap
+ * between words does not register as thinking time.
+ */
+export async function silenceSeconds(dir: string, file: string): Promise<number> {
+  const { stderr } = await run(
+    "docker",
+    [
+      "run", "--rm", "--network", "none", "-v", `${dir}:/work`, "-w", "/work",
+      "--entrypoint", "ffmpeg", image(),
+      "-i", `/work/${file}`, "-af", "silencedetect=noise=-35dB:d=0.3", "-f", "null", "-",
+    ],
+    { timeout: 60_000, maxBuffer: 8 * 1024 * 1024 },
+  ).catch((error: { stderr?: string }) => ({ stderr: error.stderr ?? "" }));
+
+  let total = 0;
+  for (const match of (stderr ?? "").matchAll(/silence_duration:\s*([\d.]+)/g)) {
+    total += Number(match[1]);
+  }
+  return total;
+}
+
 /** Synthesise one narration segment to `dir/<name>.mp3`. */
 export async function speak(dir: string, name: string, text: string): Promise<string> {
   const key = process.env.ELEVENLABS_API_KEY;

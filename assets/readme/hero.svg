@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-label="Klarblick: math and physics micro-lessons rendered as narrated Manim videos">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7b6fe0"/>
+      <stop offset="60%" stop-color="#6b5fd4"/>
+      <stop offset="100%" stop-color="#5e52c7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Own background: readable on GitHub light AND dark -->
+  <rect width="1200" height="300" fill="url(#bg)"/>
+
+  <!-- Editorial ruled-page hairlines (the app's "ruled pages" motif) -->
+  <line x1="48" y1="96"  x2="1152" y2="96"  stroke="#ffffff" stroke-opacity="0.10"/>
+  <line x1="48" y1="156" x2="1152" y2="156" stroke="#ffffff" stroke-opacity="0.10"/>
+  <line x1="48" y1="216" x2="1152" y2="216" stroke="#ffffff" stroke-opacity="0.10"/>
+
+  <!-- Kicker -->
+  <text x="600" y="78" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="17" font-weight="700" letter-spacing="6"
+        fill="#ffffff" fill-opacity="0.78">MATH &amp; PHYSICS MICRO-LESSONS</text>
+
+  <!-- Title -->
+  <text x="600" y="146" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="68" font-weight="800" letter-spacing="10"
+        fill="#ffffff">KLARBLICK</text>
+
+  <!-- Tagline (SVG text does not wrap; broken by hand) -->
+  <text x="600" y="184" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="22" fill="#edeafa">A teacher configures a micro-lesson; one pass returns a narrated Manim video,</text>
+  <text x="600" y="212" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="22" fill="#edeafa">three recap cards, and a self-contained student assignment.</text>
+
+  <!-- Lesson ruler: one segment per scene, sized by duration -->
+  <text x="282" y="248" text-anchor="end"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="16" fill="#ffffff" fill-opacity="0.7">0:00</text>
+  <rect x="300" y="234" width="94"  height="16" rx="3" fill="#ffffff" fill-opacity="0.28"/>
+  <rect x="398" y="234" width="166" height="16" rx="3" fill="#ffffff"/>
+  <path d="M 474 237.5 L 484 242 L 474 246.5 Z" fill="#5e52c7"/>
+  <rect x="568" y="234" width="118" height="16" rx="3" fill="#ffffff" fill-opacity="0.28"/>
+  <rect x="690" y="234" width="128" height="16" rx="3" fill="#ffffff" fill-opacity="0.28"/>
+  <rect x="822" y="234" width="78"  height="16" rx="3" fill="#ffffff" fill-opacity="0.28"/>
+  <text x="918" y="248" text-anchor="start"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="16" fill="#ffffff" fill-opacity="0.7">0:30</text>
+</svg>

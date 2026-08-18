@@ -56,12 +56,11 @@ Two of those gates are deterministic and run before any paid visual review: one 
 
 ## What comes out
 
-One approval yields a complete lesson package. The committed hero bundles hold a real
-rendered example for each subject, under `fallback/math/` and `fallback/physics/`:
-
-- `lesson.mp4` — the 720p narrated lesson with burned-in captions.
-- `recap_1.png`, `recap_2.png`, `recap_3.png` — the three recap cards. Math covers reading
-  a median off a number line; physics covers reading a distance-time graph.
+| | | |
+|:---:|:---:|:---:|
+| <img src="fallback/math/recap_1.png" width="260" alt="Math recap card 1: median on a number line"> | <img src="fallback/math/recap_2.png" width="260" alt="Math recap card 2"> | <img src="fallback/math/recap_3.png" width="260" alt="Math recap card 3"> |
+| <img src="fallback/physics/recap_1.png" width="260" alt="Physics recap card 1: reading a distance-time graph"> | <img src="fallback/physics/recap_2.png" width="260" alt="Physics recap card 2"> | <img src="fallback/physics/recap_3.png" width="260" alt="Physics recap card 3"> |
+| *Real recap cards from the committed hero bundles — math above, physics below.* | | |
 
 Each lesson also ships an assignment written in the same model call as the storyboard: a fresh worked example (never the video's own), and three to five tasks split between `ai_assistable` mechanical work and `core` reasoning — at least two core tasks, checked before the render even starts. Written work and spoken answers are weighted into one score (`assignment_probe_weight` in `settings.py`).
 

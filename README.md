@@ -14,7 +14,7 @@
   </p>
 </div>
 
-Klarblick is a local hackathon application for mathematics and physics teachers at a German Gymnasium. A teacher configures a micro-lesson, reviews the AI storyboard section by section, and one approval produces everything the class needs: a narrated Manim video with burned-in captions, three recap cards, and a self-contained student assignment — all generated in the same pass, all in English. `docs/SETUP.md` in the project tree is a one-page map of the pieces.
+Klarblick is a platform for mathematics and physics teachers at a German Gymnasium. A teacher configures a micro-lesson, reviews the AI storyboard section by section, and one approval produces everything the class needs: a narrated Manim video with burned-in captions, three recap cards, and a self-contained student assignment — all generated in the same pass, all in English. `docs/SETUP.md` in the project tree is a one-page map of the pieces.
 
 > [!TIP]
 > **See it work without spending a cent.** The focused checks run in seconds and are free:
